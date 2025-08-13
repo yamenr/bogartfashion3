@@ -1,0 +1,10 @@
+{
+  "name": "bogartfashion",
+  "version": "1.0.0",
+  "description": "BogartFashion - Online Fashion Store",
+  "dependencies": {
+    "chart.js": "^4.4.9",
+    "http-proxy-middleware": "^3.0.5",
+    "react-chartjs-2": "^5.3.0"
+  }
+}

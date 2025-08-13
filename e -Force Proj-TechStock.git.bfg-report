@@ -1,0 +1,3 @@
+[33mef0a90e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix cart button alignment and styling improvements - Remove duplicate CSS rules for clear-cart-button - Fix apply button height and alignment with input field - Ensure consistent button widths and spacing - Improve overall cart design consistency
+[33m7343b5d[m Update Bogart Fashion branding and styling
+[33m8515571[m Initial commit: Complete TechStock e-commerce application with frontend and backend

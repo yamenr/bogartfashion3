@@ -1,0 +1,206 @@
+/* General Dashboard Styles - Dark Theme */
+.dashboard-container {
+    padding: 32px;
+    background-color: #111;
+    min-height: 100vh;
+    color: #fff;
+}
+
+.dashboard-container h2 {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+    color: #C2883A;
+    text-align: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dashboard-container .subtitle {
+    color: #C2883A;
+    margin-top: 0;
+    margin-bottom: 40px;
+    text-align: center;
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+/* Stats Cards */
+.stats-container {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 200px;
+    background: #222;
+    border: 2px solid #333;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #C2883A, #d4a04a);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(194, 136, 58, 0.2);
+    border-color: #C2883A;
+}
+
+.stat-card h3 {
+    margin-top: 0;
+    font-size: 1.3rem;
+    color: #C2883A;
+    font-weight: bold;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-card p {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.chart-container {
+    background: #222;
+    border: 2px solid #333;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.chart-container:hover {
+    border-color: #C2883A;
+    box-shadow: 0 12px 35px rgba(194, 136, 58, 0.15);
+}
+
+.chart-container h3 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    text-align: center;
+    margin-bottom: 24px;
+    color: #C2883A;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Product List */
+.product-list-container {
+    background: #222;
+    border: 2px solid #333;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.product-list-container:hover {
+    border-color: #C2883A;
+    box-shadow: 0 12px 35px rgba(194, 136, 58, 0.15);
+}
+
+.product-list-container h3 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    text-align: center;
+    margin-bottom: 24px;
+    color: #C2883A;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.product-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.product-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #333;
+    color: #fff;
+    transition: all 0.2s ease;
+}
+
+.product-list li:last-child {
+    border-bottom: none;
+}
+
+.product-list li:hover {
+    background: #333;
+    padding-left: 16px;
+    padding-right: 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    border-radius: 8px;
+}
+
+.product-sales {
+    color: #C2883A;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+/* Make grid stack on smaller screens */
+@media (max-width: 992px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-container {
+        flex-direction: column;
+    }
+    
+    .dashboard-container {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container h2 {
+        font-size: 2rem;
+    }
+
+    .stat-card p {
+        font-size: 2rem;
+    }
+    
+    .stat-card {
+        min-width: 100%;
+    }
+} 

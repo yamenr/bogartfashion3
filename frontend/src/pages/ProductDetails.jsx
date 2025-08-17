@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { formatPrice } from '../utils/currency';
+import './ProductDetails.css';
 
 // Helper to get currency symbol
 const getCurrencySymbol = (currencyCode) => {
@@ -51,8 +52,8 @@ export default function ProductDetails() {
     setCartMsg('Added to cart!');
   };
 
-  if (loading) return <div style={{ textAlign: 'center', marginTop: 50 }}>Loading...</div>;
-  if (!product) return <div style={{ textAlign: 'center', marginTop: 50 }}>Product not found.</div>;
+  if (loading) return <div className="loading-container">Loading...</div>;
+  if (!product) return <div className="error-container">Product not found.</div>;
 
   // Enhanced inventory validation
   const hasValidStock = product.stock && product.stock >= 0;
@@ -61,129 +62,122 @@ export default function ProductDetails() {
   const stockColor = !hasValidStock ? '#ff6b35' : product.stock === 0 ? '#dc3545' : '#28a745';
 
   return (
-    <div style={{ maxWidth: 1100, margin: '40px auto', display: 'flex', gap: 40, alignItems: 'flex-start', fontFamily: 'Arial, sans-serif' }}>
-      <button onClick={() => navigate(-1)} style={{ position: 'absolute', left: 30, top: 30, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '1em' }}>&lt; Back to all products</button>
-      <div className="product-image-container">
-        {product.image ? (
-          <img
-            src={product.image && product.image.startsWith('/uploads') ? `http://localhost:3001${product.image}` : product.image}
-            alt={product.name}
-            className="product-main-image"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        <div style={{ 
-          display: product.image ? 'none' : 'flex',
-          width: '400px', 
-          height: '400px', 
-          backgroundColor: '#333', 
-          borderRadius: '8px', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          color: '#C2883A',
-          fontSize: '4em'
-        }}>
-          👕
-        </div>
-      </div>
-      <div className="product-info-container">
-        <h1 className="product-title">{product.name}</h1>
-        <div style={{ fontSize: '1.5em', fontWeight: 'bold', marginBottom: 15 }}>{formatPrice(product.price, currency)}</div>
-        <p className="product-description">{product.description}</p>
-        
-        {/* Fashion-specific details */}
-        <div style={{ marginBottom: 20, padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-          <h3 style={{ marginBottom: '10px', color: '#333' }}>Product Details</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-            {product.brand && (
-              <div>
-                <strong>Brand:</strong> {product.brand}
-              </div>
-            )}
-            {product.size && (
-              <div>
-                <strong>Size:</strong> {product.size}
-              </div>
-            )}
-            {product.color && (
-              <div>
-                <strong>Color:</strong> {product.color}
-              </div>
-            )}
-            {product.material && (
-              <div>
-                <strong>Material:</strong> {product.material}
-              </div>
-            )}
-            {product.season && (
-              <div>
-                <strong>Season:</strong> {product.season}
-              </div>
-            )}
-            {product.gender && (
-              <div>
-                <strong>Gender:</strong> {product.gender}
-              </div>
-            )}
+    <div className="product-details-container">
+      <button 
+        onClick={() => navigate(-1)} 
+        className="back-button"
+      >
+        ← Back to all products
+      </button>
+      
+      <div className="product-layout">
+        <div className="product-image-container">
+          {product.image ? (
+            <img
+              src={product.image && product.image.startsWith('/uploads') ? `http://localhost:3001${product.image}` : product.image}
+              alt={product.name}
+              className="product-main-image"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className="product-placeholder">
+            👜
           </div>
         </div>
         
-        <div className="product-stock-status">
-          <span style={{ color: stockColor, fontWeight: 'bold' }}>
-            {stockStatus}
-          </span>
-        </div>
-        {hasValidStock && product.stock > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <span>Quantity:</span>
-            <button 
-              onClick={() => setQuantity(q => Math.max(1, q - 1))} 
-              style={{ 
-                padding: '5px 12px', 
-                fontSize: '1.1em', 
-                borderRadius: 4, 
-                border: '1px solid #ddd', 
-                background: '#f3f4f6', 
-                cursor: 'pointer'
-              }}
-            >-</button>
-            <span style={{ minWidth: 30, textAlign: 'center' }}>{quantity}</span>
-            <button 
-              onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} 
-              style={{ 
-                padding: '5px 12px', 
-                fontSize: '1.1em', 
-                borderRadius: 4, 
-                border: '1px solid #ddd', 
-                background: '#f3f4f6', 
-                cursor: 'pointer'
-              }}
-            >+</button>
+        <div className="product-info-container">
+          <h1 className="product-title">{product.name}</h1>
+          <div className="product-price">{formatPrice(product.price, currency)}</div>
+          <p className="product-description">{product.description}</p>
+          
+          {/* Fashion-specific details */}
+          <div className="product-details-box">
+            <h3 className="product-details-title">Product Details</h3>
+            <div className="product-details-grid">
+              {product.brand && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Brand:</span>
+                  <span className="product-detail-value">{product.brand}</span>
+                </div>
+              )}
+              {product.size && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Size:</span>
+                  <span className="product-detail-value">{product.size}</span>
+                </div>
+              )}
+              {product.color && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Color:</span>
+                  <span className="product-detail-value">{product.color}</span>
+                </div>
+              )}
+              {product.material && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Material:</span>
+                  <span className="product-detail-value">{product.material}</span>
+                </div>
+              )}
+              {product.season && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Season:</span>
+                  <span className="product-detail-value">{product.season}</span>
+                </div>
+              )}
+              {product.gender && (
+                <div className="product-detail-item">
+                  <span className="product-detail-label">Gender:</span>
+                  <span className="product-detail-value">{product.gender}</span>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        <button
-          style={{ 
-            padding: '12px 0', 
-            width: 250, 
-            background: isOutOfStock ? '#6c757d' : '#111827', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: 6, 
-            fontWeight: 'bold', 
-            fontSize: '1em', 
-            cursor: isOutOfStock ? 'not-allowed' : 'pointer', 
-            opacity: isOutOfStock ? 0.6 : 1 
-          }}
-          disabled={isOutOfStock}
-          onClick={handleAddToCart}
-          title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : 'Add to cart'}
-        >
-          {!hasValidStock ? 'Invalid Stock' : product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-        </button>
-        {cartMsg && <div style={{ marginTop: 15, color: cartMsg.includes('Added') ? 'green' : 'red' }}>{cartMsg}</div>}
+          
+          <div className="product-stock-status">
+            <span className="stock-text" style={{ color: stockColor }}>
+              {stockStatus}
+            </span>
+          </div>
+          
+          {hasValidStock && product.stock > 0 && (
+            <div className="quantity-selector">
+              <span className="quantity-label">Quantity:</span>
+              <div className="quantity-controls">
+                <button 
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))} 
+                  className="quantity-button"
+                >
+                  -
+                </button>
+                <span className="quantity-display">{quantity}</span>
+                <button 
+                  onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} 
+                  className="quantity-button"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+          
+          <button
+            className="add-to-cart-button"
+            disabled={isOutOfStock}
+            onClick={handleAddToCart}
+            title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : 'Add to cart'}
+          >
+            {!hasValidStock ? 'Invalid Stock' : product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+          
+          {cartMsg && (
+            <div className={`cart-message ${cartMsg.includes('Added') ? 'success' : 'error'}`}>
+              {cartMsg}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

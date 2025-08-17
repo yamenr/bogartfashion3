@@ -22,6 +22,7 @@ import PayPalTest from './pages/PayPalTest';
 
 import Dashboard from './pages/manager/Dashboard';
 import Products from './pages/manager/Products';
+import AdvancedInventory from './pages/manager/AdvancedInventory';
 import Promotions from './pages/manager/Promotions';
 import Customers from './pages/manager/Customers';
 import Settings from './pages/manager/Settings';
@@ -74,6 +75,7 @@ function App({ isManagerRoute }) {
         {/* Manager Routes */}
         <Route path="/manager/dashboard" element={<Dashboard />} />
         <Route path="/manager/products" element={<Products />} />
+        <Route path="/manager/advanced-inventory" element={<AdvancedInventory />} />
         <Route path="/manager/promotions" element={<Promotions />} />
         <Route path="/manager/customers" element={<Customers />} />
         <Route path="/manager/categories" element={<Categories />} />

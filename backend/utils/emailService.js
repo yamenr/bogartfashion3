@@ -17,6 +17,9 @@ class EmailService {
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
+            },
+            tls: {
+                rejectUnauthorized: false
             }
         });
     }
@@ -96,6 +99,49 @@ class EmailService {
             return true;
         } catch (error) {
             console.error('Error sending contact notification email:', error);
+            return false;
+        }
+    }
+
+    async sendPasswordResetEmail(userEmail, resetToken) {
+        if (!this.transporter) {
+            console.log('Email service not configured. Skipping password reset email.');
+            return false;
+        }
+
+        try {
+            const mailOptions = {
+                from: 'BogartFashion Password Reset <noreply@bogartfashion.com>',
+                to: userEmail,
+                subject: 'BogartFashion Password Reset',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #2563eb;">Password Reset Request</h2>
+                        <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+                        <p>Please click on the following link to complete the process:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="http://localhost:3000/reset-password/${resetToken}" 
+                               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                Reset My Password
+                            </a>
+                        </div>
+                        <p>Or copy and paste this link into your browser:</p>
+                        <p style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">
+                            http://localhost:3000/reset-password/${resetToken}
+                        </p>
+                        <p><strong>Important:</strong> This link will expire in 1 hour.</p>
+                        <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+                        <br>
+                        <p>Best regards,<br>The BogartFashion Team</p>
+                    </div>
+                `
+            };
+
+            const info = await this.transporter.sendMail(mailOptions);
+            console.log('Password reset email sent successfully:', info.messageId);
+            return true;
+        } catch (error) {
+            console.error('Error sending password reset email:', error);
             return false;
         }
     }

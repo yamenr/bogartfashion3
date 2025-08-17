@@ -1,10 +1,16 @@
 -- phpMyAdmin SQL Dump
--- BogartFashion Database
--- Fashion Online Store
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: localhost:3310
+-- Generation Time: Aug 06, 2025 at 08:28 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
+
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -12,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `bogartfashion`
+-- Database: `bogartfashion2`
 --
 
 -- --------------------------------------------------------
@@ -41,63 +47,6 @@ INSERT INTO `categories` (`category_id`, `name`) VALUES
 (8, 'Watches'),
 (9, 'Sportswear'),
 (10, 'Formal Wear');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `products`
---
-
-CREATE TABLE `products` (
-  `product_id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `image` varchar(255) DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
-  `stock` int(11) DEFAULT NULL CHECK (stock >= 0),
-  `supplier_id` int(11) DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL,
-  `size` varchar(20) DEFAULT NULL,
-  `color` varchar(50) DEFAULT NULL,
-  `material` varchar(100) DEFAULT NULL,
-  `brand` varchar(100) DEFAULT NULL,
-  `season` enum('Spring','Summer','Fall','Winter','All Season') DEFAULT 'All Season',
-  `gender` enum('Men','Women','Unisex','Kids') DEFAULT 'Unisex'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Create triggers to prevent negative stock values
-DELIMITER $$
-CREATE TRIGGER before_product_stock_update
-BEFORE UPDATE ON products
-FOR EACH ROW
-BEGIN
-    IF NEW.stock < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Stock cannot be negative';
-    END IF;
-END$$
-
-CREATE TRIGGER before_product_stock_insert
-BEFORE INSERT ON products
-FOR EACH ROW
-BEGIN
-    IF NEW.stock < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Stock cannot be negative';
-    END IF;
-END$$
-DELIMITER ;
-
---
--- Dumping data for table `products`
---
-
-INSERT INTO `products` (`product_id`, `name`, `description`, `image`, `price`, `stock`, `supplier_id`, `category_id`, `size`, `color`, `material`, `brand`, `season`, `gender`) VALUES
-(1, 'Classic White T-Shirt', 'Premium cotton t-shirt with modern fit', '/uploads/classic-white-tshirt.jpg', 29.99, 50, 1, 1, 'M', 'White', 'Cotton', 'Bogart', 'All Season', 'Men'),
-(2, 'Elegant Black Dress', 'Sophisticated black dress for formal occasions', '/uploads/elegant-black-dress.jpg', 89.99, 25, 2, 2, 'L', 'Black', 'Polyester', 'Bogart', 'All Season', 'Women'),
-(3, 'Denim Jacket', 'Classic denim jacket with vintage styling', '/uploads/denim-jacket.jpg', 79.99, 30, 1, 1, 'XL', 'Blue', 'Denim', 'Bogart', 'Spring', 'Men'),
-(4, 'Summer Floral Dress', 'Light and breezy summer dress with floral pattern', '/uploads/summer-floral-dress.jpg', 65.99, 40, 2, 2, 'S', 'Pink', 'Cotton', 'Bogart', 'Summer', 'Women'),
-(5, 'Leather Handbag', 'Premium leather handbag with gold hardware', '/uploads/leather-handbag.jpg', 129.99, 15, 3, 6, 'One Size', 'Brown', 'Leather', 'Bogart', 'All Season', 'Women');
 
 -- --------------------------------------------------------
 
@@ -135,6 +84,40 @@ CREATE TABLE `order_items` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `products`
+--
+
+CREATE TABLE `products` (
+  `product_id` int(11) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `stock` int(11) DEFAULT NULL,
+  `supplier_id` int(11) DEFAULT NULL,
+  `category_id` int(11) DEFAULT NULL,
+  `size` varchar(20) DEFAULT NULL,
+  `color` varchar(50) DEFAULT NULL,
+  `material` varchar(100) DEFAULT NULL,
+  `brand` varchar(100) DEFAULT NULL,
+  `season` enum('Spring','Summer','Fall','Winter','All Season') DEFAULT 'All Season',
+  `gender` enum('Men','Women','Unisex','Kids') DEFAULT 'Unisex'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`product_id`, `name`, `description`, `image`, `price`, `stock`, `supplier_id`, `category_id`, `size`, `color`, `material`, `brand`, `season`, `gender`) VALUES
+(1, 'Classic White T-Shirt', 'Premium cotton t-shirt with modern fit', '/uploads/classic-white-tshirt.jpg', 29.99, 50, 1, 1, 'M', 'White', 'Cotton', 'Bogart', 'All Season', 'Men'),
+(2, 'Elegant Black Dress', 'Sophisticated black dress for formal occasions', '/uploads/elegant-black-dress.jpg', 89.99, 25, 2, 2, 'L', 'Black', 'Polyester', 'Bogart', 'All Season', 'Women'),
+(3, 'Denim Jacket', 'Classic denim jacket with vintage styling', '/uploads/denim-jacket.jpg', 79.99, 30, 1, 1, 'XL', 'Blue', 'Denim', 'Bogart', 'Spring', 'Men'),
+(4, 'Summer Floral Dress', 'Light and breezy summer dress with floral pattern', '/uploads/summer-floral-dress.jpg', 65.99, 40, 2, 2, 'S', 'Pink', 'Cotton', 'Bogart', 'Summer', 'Women'),
+(5, 'Leather Handbag', 'Premium leather handbag with gold hardware', '/uploads/leather-handbag.jpg', 129.99, 15, 3, 6, 'One Size', 'Brown', 'Leather', 'Bogart', 'All Season', 'Women');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `promotions`
 --
 
@@ -162,8 +145,8 @@ CREATE TABLE `promotions` (
 
 INSERT INTO `promotions` (`promotion_id`, `name`, `description`, `type`, `value`, `min_quantity`, `max_quantity`, `start_date`, `end_date`, `is_active`, `applicable_products`, `applicable_categories`, `code`, `created_at`, `updated_at`) VALUES
 (1, 'Summer Fashion Sale 25% Off', 'Get 25% off on all summer collection', 'percentage', '25', 1, NULL, '2024-05-31', '2026-01-30', 1, '[]', '[]', 'SUMMER25', '2025-06-21 06:57:38', '2025-06-21 07:43:12'),
-(2, '$20 Off on Orders Over $100', 'Get $20 discount on orders over $100', 'fixed', '20', 1, NULL, '2024-06-01', '2024-12-31', 1, NULL, NULL, 'SAVE20', '2025-06-21 06:57:38', '2025-06-21 06:57:38'),
-(3, 'New Collection 15% Off', '15% discount on new arrivals', 'percentage', '15', 1, NULL, '2024-06-01', '2024-12-31', 1, NULL, NULL, 'NEW15', '2025-06-21 06:57:38', '2025-06-21 07:39:46');
+(2, '$20 Off on Orders Over $100', 'Get $20 discount on orders over $100', 'fixed', '20', 1, NULL, '2024-06-01', '2024-12-31', 0, NULL, NULL, 'SAVE20', '2025-06-21 06:57:38', '2025-08-05 21:50:57'),
+(3, 'New Collection 15% Off', '15% discount on new arrivals', 'percentage', '15', 1, NULL, '2024-06-01', '2024-12-31', 0, NULL, NULL, 'NEW15', '2025-06-21 06:57:38', '2025-08-05 21:50:57');
 
 -- --------------------------------------------------------
 
@@ -225,8 +208,39 @@ CREATE TABLE `users` (
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('user','admin') DEFAULT 'user',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `resetPasswordToken` varchar(255) DEFAULT NULL,
+  `resetPasswordExpires` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `role`, `created_at`, `resetPasswordToken`, `resetPasswordExpires`) VALUES
+(1, 'User', 'yamen.rock@gmail.com', '$2b$10$tlyty4yLWI57KolR3xp61uAUoPfVddMPP8R.e64G0EumLK/Qgb37C', 'user', '2025-08-06 04:27:47', '26580f884e8e128994b93a97bba996ed111deaf5', 1754460876469);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `contact_messages`
+--
+
+CREATE TABLE `contact_messages` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('new','read','replied','archived') DEFAULT 'new'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `contact_messages`
+--
+
+INSERT INTO `contact_messages` (`id`, `name`, `email`, `message`, `created_at`, `status`) VALUES
+(1, 'Test User', 'test@example.com', 'This is a test message', '2025-08-06 12:00:00', 'read');
 
 --
 -- Indexes for dumped tables
@@ -237,14 +251,6 @@ CREATE TABLE `users` (
 --
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`category_id`);
-
---
--- Indexes for table `products`
---
-ALTER TABLE `products`
-  ADD PRIMARY KEY (`product_id`),
-  ADD KEY `category_id` (`category_id`),
-  ADD KEY `supplier_id` (`supplier_id`);
 
 --
 -- Indexes for table `orders`
@@ -261,6 +267,14 @@ ALTER TABLE `order_items`
   ADD PRIMARY KEY (`order_item_id`),
   ADD KEY `order_id` (`order_id`),
   ADD KEY `product_id` (`product_id`);
+
+--
+-- Indexes for table `products`
+--
+ALTER TABLE `products`
+  ADD PRIMARY KEY (`product_id`),
+  ADD KEY `category_id` (`category_id`),
+  ADD KEY `supplier_id` (`supplier_id`);
 
 --
 -- Indexes for table `promotions`
@@ -289,6 +303,12 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Indexes for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -297,12 +317,6 @@ ALTER TABLE `users`
 --
 ALTER TABLE `categories`
   MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
--- AUTO_INCREMENT for table `products`
---
-ALTER TABLE `products`
-  MODIFY `product_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `orders`
@@ -315,6 +329,12 @@ ALTER TABLE `orders`
 --
 ALTER TABLE `order_items`
   MODIFY `order_item_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `products`
+--
+ALTER TABLE `products`
+  MODIFY `product_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `promotions`
@@ -338,18 +358,17 @@ ALTER TABLE `suppliers`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `contact_messages`
+--
+ALTER TABLE `contact_messages`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
 --
-
---
--- Constraints for table `products`
---
-ALTER TABLE `products`
-  ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`),
-  ADD CONSTRAINT `products_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
 
 --
 -- Constraints for table `orders`
@@ -365,8 +384,14 @@ ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`),
   ADD CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`);
 
+--
+-- Constraints for table `products`
+--
+ALTER TABLE `products`
+  ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`),
+  ADD CONSTRAINT `products_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */; 
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

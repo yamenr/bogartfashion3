@@ -179,40 +179,16 @@ router.post('/forgot-password', async (req, res) => {
             });
         }
 
-        // Send the email
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-
-        const mailOptions = {
-            to: user.email,
-            from: 'passwordreset@bogartfashion.com',
-            subject: 'BogartFashion Password Reset',
-            text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
-                   Please click on the following link, or paste this into your browser to complete the process:\n\n
-                   http://localhost:3000/reset-password/${resetToken}\n\n
-                   If you did not request this, please ignore this email and your password will remain unchanged.\n`
-        };
-
+        // Send the email using the centralized EmailService
+        const EmailService = require('../../utils/emailService.js');
+        const emailService = new EmailService();
+        
         try {
-            await transporter.sendMail(mailOptions);
+            await emailService.sendPasswordResetEmail(user.email, resetToken);
             console.log(`Password reset email sent to ${user.email}`);
             res.status(200).json({ message: 'Password reset email sent' });
         } catch (emailError) {
-            console.error('Error sending password reset email:');
-            console.error('Error code:', emailError.code);
-            console.error('Error message:', emailError.message);
-            console.error('Error response:', emailError.response);
-            console.error('Email config being used:', {
-                user: process.env.EMAIL_USER,
-                passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 'undefined'
-            });
+            console.error('Error sending password reset email:', emailError.message);
             res.status(200).json({ 
                 message: 'Password reset token generated but email failed to send.',
                 resetToken: resetToken,

@@ -1,190 +1,216 @@
-# BogartFashion - Online Fashion Store
+# Bogart Fashion Website - Setup Guide
 
-## Overview
+A modern online fashion brand website built with React frontend and Node.js backend.
 
-BogartFashion is a modern, elegant online fashion store built with React.js frontend and Node.js backend. The application has been transformed from a tech store to a comprehensive fashion e-commerce platform.
-
-## Features
-
-### 🛍️ Fashion-Specific Features
-- **Product Management**: Support for fashion-specific fields including size, color, material, brand, season, and gender
-- **Category Management**: Fashion categories (Men, Women, Kids, Accessories, Shoes, Bags, Jewelry, Watches, Sportswear, Formal Wear)
-- **Inventory Management**: Track sizes and colors separately with comprehensive stock management
-- **Brand Management**: Support for multiple fashion brands and suppliers
-
-### 🎨 Design & Branding
-- **Modern UI**: Elegant design with fashion-appropriate color scheme (pink/purple gradient)
-- **Responsive Design**: Mobile-first approach with beautiful desktop layouts
-- **Typography**: Professional fonts (Playfair Display for headings, Lato for body text)
-- **Brand Identity**: BogartFashion branding with fashion-focused messaging
-
-### 🛒 E-commerce Features
-- **Shopping Cart**: Full cart functionality with quantity management
-- **User Authentication**: Secure login/signup system
-- **Order Management**: Complete order processing and tracking
-- **Payment Integration**: PayPal and credit card payment options
-- **Promotions**: Discount codes and promotional campaigns
-
-### 👨‍💼 Admin Features
-- **Product Management**: Add, edit, delete products with fashion-specific fields
-- **Category Management**: Manage fashion categories
-- **Order Management**: Process and track customer orders
-- **Customer Management**: View and manage customer accounts
-- **Analytics Dashboard**: Sales and inventory analytics
-
-## Database Schema
-
-### New Fashion-Specific Fields
-The products table now includes:
-- `size` (S, M, L, XL, etc.)
-- `color` (Red, Blue, Black, etc.)
-- `material` (Cotton, Silk, Polyester, etc.)
-- `brand` (Bogart, Nike, etc.)
-- `season` (Spring, Summer, Fall, Winter, All Season)
-- `gender` (Men, Women, Unisex, Kids)
-
-### Categories
-- Men's Fashion
-- Women's Fashion
-- Kids
-- Accessories
-- Shoes
-- Bags & Handbags
-- Jewelry
-- Watches
-- Sportswear
-- Formal Wear
-
-## Installation & Setup
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- MySQL database
-- npm or yarn
+- **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
+- **MySQL** (v8.0 or higher) - Install via [XAMPP](https://www.apachefriends.org/) or standalone
+- **Git** - [Download here](https://git-scm.com/)
 
-### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yamenr/bogartfashion3.git
+cd bogartfashion3
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 2. Database Setup
 
-3. Set up environment variables:
+#### Option A: Using XAMPP (Recommended for Windows)
+1. Download and install [XAMPP](https://www.apachefriends.org/)
+2. Start XAMPP Control Panel
+3. Start Apache and MySQL services
+4. Open phpMyAdmin: `http://localhost/phpmyadmin`
+5. Create new database: `bogartfashion2`
+6. Import the database schema:
+   - Click on your new database
+   - Go to "Import" tab
+   - Choose file: `bogartfashion.sql`
+   - Click "Go" to import
+
+#### Option B: Standalone MySQL
+1. Install MySQL Server
+2. Create database: `CREATE DATABASE bogartfashion2;`
+3. Import schema: `mysql -u root -p bogartfashion2 < bogartfashion.sql`
+
+### 3. Environment Configuration
+
+#### Backend Configuration
+1. Navigate to `backend/` folder
+2. Copy `env.example` to `env.config`:
    ```bash
    cp env.example env.config
    ```
-   Edit `env.config` with your database credentials and other settings.
-
-4. Import the database:
-   ```bash
-   mysql -u your_username -p your_database < ../bogartfashion.sql
+3. Edit `env.config` with your database credentials:
+   ```env
+   # Database Configuration
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=your_mysql_password
+   DB_NAME=bogartfashion2
+   DB_PORT=3306
+   
+   # JWT Secret
+   JWT_SECRET=your-secret-key-here
+   
+   # Email Configuration (Gmail)
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASS=your-gmail-app-password
    ```
 
-5. Start the backend server:
-   ```bash
-   npm start
-   ```
+#### Email Setup (Required for Contact Form & Password Reset)
+1. Enable 2-Factor Authentication on your Gmail account
+2. Generate an App Password:
+   - Go to Google Account Settings
+   - Security → 2-Step Verification → App passwords
+   - Generate password for "Mail"
+3. Use this app password in `EMAIL_PASS`
 
-### Frontend Setup
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+### 4. Install Dependencies
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+#### Backend Dependencies
+```bash
+cd backend
+npm install
+```
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+#### Frontend Dependencies
+```bash
+cd ../frontend
+npm install
+```
 
-## Usage
+### 5. Start the Application
 
-### For Customers
-1. Browse products by category
-2. View detailed product information including size, color, material, and brand
-3. Add items to cart with quantity selection
-4. Complete checkout with payment
-5. Track order status
+#### Option A: Use the Batch Script (Windows)
+```bash
+# From the root directory
+.\run-servers.bat
+```
 
-### For Administrators
-1. Access admin dashboard at `/manager/dashboard`
-2. Manage products with fashion-specific fields
-3. Process orders and manage inventory
-4. Create promotional campaigns
-5. Monitor sales analytics
+#### Option B: Manual Start
+```bash
+# Terminal 1 - Backend (Port 3001)
+cd backend
+npm start
 
-## Technology Stack
+# Terminal 2 - Frontend (Port 3000)
+cd frontend
+npm start
+```
 
-### Frontend
-- React.js 19.1.0
-- React Router DOM 7.6.0
-- Axios for API calls
-- CSS3 with modern styling
+### 6. Access the Website
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3001
+- **Database**: localhost:3306
 
-### Backend
-- Node.js with Express
-- MySQL database
-- JWT authentication
-- Multer for file uploads
-- Nodemailer for email notifications
+## 🔧 Configuration Details
 
-## File Structure
+### Ports Used
+- **Frontend**: 3000
+- **Backend API**: 3001
+- **MySQL**: 3306
+- **Apache**: 80 (if using XAMPP)
+
+### Database Tables
+The application uses these main tables:
+- `users` - User accounts and authentication
+- `products` - Product catalog
+- `categories` - Product categories
+- `orders` - Customer orders
+- `contact_messages` - Contact form submissions
+- `settings` - Application settings
+
+### Email Features
+- Contact form notifications
+- Password reset emails
+- Order confirmation emails
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. "Port already in use" Error
+```bash
+# Windows - Find process using port
+netstat -ano | findstr :3000
+netstat -ano | findstr :3001
+
+# Kill process by PID
+taskkill /PID <process_id> /F
+```
+
+#### 2. Database Connection Failed
+- Verify MySQL is running
+- Check database credentials in `env.config`
+- Ensure database `bogartfashion2` exists
+- Verify port 3306 is correct
+
+#### 3. Email Not Sending
+- Check Gmail app password is correct
+- Verify 2FA is enabled on Gmail
+- Check `EMAIL_USER` and `EMAIL_PASS` in `env.config`
+
+#### 4. Frontend Can't Connect to Backend
+- Ensure backend is running on port 3001
+- Check proxy configuration in `frontend/src/setupProxy.js`
+- Verify no firewall blocking the connection
+
+### Reset Everything
+```bash
+# Stop all servers
+# Delete node_modules and reinstall
+cd backend && rmdir /s node_modules && npm install
+cd ../frontend && rmdir /s node_modules && npm install
+
+# Restart servers
+.\run-servers.bat
+```
+
+## 📁 Project Structure
 
 ```
-bogartfashion/
-├── backend/
+bogartfashion3/
+├── backend/                 # Node.js API server
 │   ├── src/
-│   │   ├── routes/          # API routes
-│   │   └── middleware/      # Authentication middleware
-│   ├── uploads/            # Product images
+│   │   ├── routes/         # API endpoints
+│   │   ├── middleware/     # Authentication middleware
+│   │   └── utils/          # Utility functions
+│   ├── env.config          # Environment variables
 │   └── server.js           # Main server file
-├── frontend/
+├── frontend/               # React application
 │   ├── src/
 │   │   ├── components/     # React components
 │   │   ├── pages/          # Page components
 │   │   ├── context/        # React context
-│   │   └── utils/          # Utility functions
+│   │   └── utils/          # Frontend utilities
 │   └── public/             # Static assets
 ├── bogartfashion.sql       # Database schema
-└── README.md              # This file
+└── run-servers.bat         # Windows startup script
 ```
 
-## Customization
+## 🚀 Deployment
 
-### Branding
-- Update logo in `frontend/src/components/Logo.jsx`
-- Modify colors in CSS files to match your brand
-- Update store name in database settings
+### Production Considerations
+- Use environment variables for sensitive data
+- Set up proper SSL certificates
+- Configure production database
+- Use PM2 or similar for process management
+- Set up proper logging and monitoring
 
-### Categories
-- Add new categories in the database
-- Update category images in `frontend/src/assets/images/`
+## 📞 Support
 
-### Product Fields
-- Add new fashion-specific fields in the database schema
-- Update the ProductModal component to include new fields
-- Modify the ProductDetails page to display new information
+If you encounter issues:
+1. Check the troubleshooting section above
+2. Verify all prerequisites are installed
+3. Check the console logs for error messages
+4. Ensure all environment variables are set correctly
 
-## Contributing
+## 📝 License
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+This project is proprietary software. All rights reserved.
 
-## License
+---
 
-This project is licensed under the MIT License.
-
-## Support
-
-For support and questions, please contact the development team or create an issue in the repository. 
+**Happy Coding! 🎉** 

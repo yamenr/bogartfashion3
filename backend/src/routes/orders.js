@@ -68,7 +68,7 @@ router.post('/', authenticateToken, async (req, res) => {
         await connection.commit();
 
         // Get user information for invoice
-        const [userResult] = await connection.query('SELECT name, email FROM users WHERE user_id = ?', [user_id]);
+        const [userResult] = await connection.query('SELECT username, email FROM users WHERE user_id = ?', [user_id]);
         const user = userResult[0];
 
         // Get order items with product names for invoice
@@ -115,7 +115,7 @@ router.post('/', authenticateToken, async (req, res) => {
         };
 
         const userData = {
-            name: user.name,
+            name: user.username,
             email: user.email
         };
 

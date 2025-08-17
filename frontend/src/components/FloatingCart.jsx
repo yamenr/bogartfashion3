@@ -5,9 +5,6 @@ import { FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const FloatingCart = () => {
-  // Temporarily disable to test if this is causing the large cart modal issue
-  return null;
-  
   const { cartItems } = useCart();
   const { user_id } = useSettings();
   const navigate = useNavigate();

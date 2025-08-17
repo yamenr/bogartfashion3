@@ -81,6 +81,24 @@ cd ../frontend
 npm install
 ```
 
+### 4.5. Create Required Directories
+
+```bash
+# Create uploads directory for images and files
+mkdir backend/uploads
+mkdir backend/uploads/invoices
+
+# Optional: Add sample product images
+# Copy any image file to backend/uploads/ and rename it to match product images
+# Example: copy sample.jpg backend/uploads/denim-jacket.jpg
+```
+
+**⚠️ Important:** Without the `backend/uploads/` directory:
+- Product images won't display (showing broken image icons)
+- Profile picture updates will fail
+- Invoice generation will fail
+- File uploads won't work
+
 ### 5. Start the Application
 
 #### Option A: Use the Batch Script (Windows)

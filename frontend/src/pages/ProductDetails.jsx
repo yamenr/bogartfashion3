@@ -83,7 +83,12 @@ export default function ProductDetails() {
               }}
             />
           ) : null}
-          <div className="product-placeholder">
+          <div 
+            className="product-placeholder"
+            style={{ 
+              display: product.image ? 'none' : 'flex' 
+            }}
+          >
             👜
           </div>
         </div>

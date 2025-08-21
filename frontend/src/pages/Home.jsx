@@ -42,12 +42,12 @@ const Home = () => {
   }
 
   const displayCategories = [
-    { name: 'Men\'s Fashion', description: 'Sophisticated men\'s clothing including suits, casual wear, and formal attire. Discover timeless style and modern elegance.', imageUrl: mensImage },
-    { name: 'Women\'s Fashion', description: 'Elegant women\'s clothing featuring dresses, tops, skirts, and formal wear. Express your unique style with our curated collection.', imageUrl: womensImage },
-    { name: 'Accessories', description: 'Complete your look with our premium accessories including belts, scarves, hats, and fashion jewelry to enhance your style.', imageUrl: accessoriesImage },
-    { name: 'Shoes', description: 'Step into style with our collection of footwear including formal shoes, casual sneakers, and elegant heels for every occasion.', imageUrl: shoesImage },
-    { name: 'Bags & Handbags', description: 'Carry your essentials in style with our collection of designer bags, handbags, and luggage for every need.', imageUrl: bagsImage },
-    { name: 'Jewelry', description: 'Adorn yourself with our exquisite jewelry collection featuring rings, necklaces, earrings, and watches for that perfect finishing touch.', imageUrl: jewelryImage },
+    { name: 'Casual Wear', description: 'Premium casual clothing including t-shirts, polo shirts, and comfortable everyday wear. Perfect for relaxed, stylish looks.', imageUrl: mensImage },
+    { name: 'Business Suits', description: 'Sophisticated business suits and formal attire for the modern professional. Make a lasting impression with our premium collection.', imageUrl: mensImage },
+    { name: 'Denim & Jeans', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: mensImage },
+    { name: 'Outerwear', description: 'Stylish jackets and coats for every season. From casual denim jackets to formal blazers.', imageUrl: mensImage },
+    { name: 'Activewear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: mensImage },
+    { name: 'Accessories', description: 'Complete your look with premium men\'s accessories including belts, ties, watches, and footwear.', imageUrl: mensImage },
   ];
 
   return (
@@ -57,10 +57,10 @@ const Home = () => {
       
       {/* Hero Section */}
       <section className="hero-section">
-        <h1>BogartFashion</h1>
-        <p>Discover timeless elegance and contemporary style in our curated fashion collection</p>
+        <h1>BogartFashion - Men's Wear</h1>
+        <p>Discover timeless elegance and contemporary style in our curated men's fashion collection</p>
         <Link to="/products" className="explore-button">
-          Explore Collection
+          Explore Men's Collection
         </Link>
       </section>
 

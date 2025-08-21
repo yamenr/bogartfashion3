@@ -1,8 +1,8 @@
 @echo off
 rem ==== CONFIGURATION ====
 rem Change these paths to match your environment
-set "BACKEND_DIR=C:\Dev\yamen1\saedahmad\bogartfashion3\backend"
-set "FRONTEND_DIR=C:\Dev\yamen1\saedahmad\bogartfashion3\frontend"
+set "BACKEND_DIR=C:\Dev\bogartfashion3\backend"
+set "FRONTEND_DIR=C:\Dev\bogartfashion3\frontend"
 set "XAMPP_DIR=C:\xampp"
 rem =======================
 

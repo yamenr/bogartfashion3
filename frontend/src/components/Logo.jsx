@@ -23,7 +23,7 @@ const Logo = () => {
           fontSize: '0.8rem',
           letterSpacing: '2px',
         }}>
-          STYLE & QUALITY
+          MEN'S STYLE & QUALITY
         </span>
       </div>
     </Link>

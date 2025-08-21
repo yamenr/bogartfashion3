@@ -6,26 +6,26 @@ import { FaShieldAlt, FaDollarSign } from 'react-icons/fa'; // Assuming you have
 const About = () => {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px', background: '#111', minHeight: '100vh' }}>
-      <h1 style={{ color: '#C2883A', textAlign: 'center', fontSize: '3em', marginBottom: '40px' }}>About BogartFashion</h1>
+      <h1 style={{ color: '#C2883A', textAlign: 'center', fontSize: '3em', marginBottom: '40px' }}>About BogartFashion - Men's Wear</h1>
       
       <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', marginTop: '30px' }}>
         <div style={{ flex: 1 }}>
           <h2 style={{ color: '#C2883A', fontSize: '2.2em', marginBottom: '20px' }}>Our Story</h2>
           <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1em' }}>
-            Founded in 2018, BogartFashion began with a simple mission: to provide fashion enthusiasts with high-quality
+            Founded in 2018, BogartFashion began with a simple mission: to provide men with high-quality
             clothing and accessories that combine style, comfort, and affordability. What started as a small boutique
-            has grown into a trusted destination for fashion lovers worldwide.
+            has grown into a trusted destination for men's fashion worldwide.
           </p>
           
           <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1em' }}>
-            We believe that fashion is more than just clothing – it's a form of self-expression, confidence, and
+            We believe that men's fashion is more than just clothing – it's a form of self-expression, confidence, and
             creativity. Our carefully curated collection reflects the latest trends while maintaining timeless elegance
             that transcends seasons.
           </p>
           
           <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1em' }}>
-            Every piece in our collection is selected with attention to quality, design, and the diverse needs of our
-            customers. From casual everyday wear to sophisticated formal attire, we offer something for every occasion
+            Every piece in our collection is selected with attention to quality, design, and the specific needs of modern men.
+            From casual everyday wear to sophisticated formal attire, we offer something for every occasion
             and personal style.
           </p>
         </div>

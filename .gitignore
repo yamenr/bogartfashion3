@@ -104,8 +104,7 @@ temp/
 ehthumbs.db
 Thumbs.db
 
-# Uploads directory
-backend/uploads/
+
 
 # Database files
 *.sqlite

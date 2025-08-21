@@ -5,12 +5,13 @@ import PromotionsBanner from '../components/PromotionsBanner';
 import './Home.css'; // Import the new CSS file
 
 // Using online fashion stock images for better representation
-const mensImage = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop';
-const womensImage = 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop';
-const accessoriesImage = 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=300&fit=crop';
-const shoesImage = 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop';
-const bagsImage = 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop';
-const jewelryImage = 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=300&fit=crop';
+// Additional fashion-specific images for men's categories
+const casualWearImage = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop';
+const businessSuitsImage = 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=300&fit=crop';
+const denimImage = 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=300&fit=crop';
+const outerwearImage = 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop';
+const activewearImage = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop';
+const fashionAccessoriesImage = 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=300&fit=crop';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -42,12 +43,12 @@ const Home = () => {
   }
 
   const displayCategories = [
-    { name: 'Casual Wear', description: 'Premium casual clothing including t-shirts, polo shirts, and comfortable everyday wear. Perfect for relaxed, stylish looks.', imageUrl: mensImage },
-    { name: 'Business Suits', description: 'Sophisticated business suits and formal attire for the modern professional. Make a lasting impression with our premium collection.', imageUrl: mensImage },
-    { name: 'Denim & Jeans', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: mensImage },
-    { name: 'Outerwear', description: 'Stylish jackets and coats for every season. From casual denim jackets to formal blazers.', imageUrl: mensImage },
-    { name: 'Activewear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: mensImage },
-    { name: 'Accessories', description: 'Complete your look with premium men\'s accessories including belts, ties, watches, and footwear.', imageUrl: mensImage },
+    { name: 'Casual Wear', description: 'Premium casual clothing including t-shirts, polo shirts, and comfortable everyday wear. Perfect for relaxed, stylish looks.', imageUrl: casualWearImage },
+    { name: 'Business Suits', description: 'Sophisticated business suits and formal attire for the modern professional. Make a lasting impression with our premium collection.', imageUrl: businessSuitsImage },
+    { name: 'Denim & Jeans', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: denimImage },
+    { name: 'Outerwear', description: 'Stylish jackets and coats for every season. From casual denim jackets to formal blazers.', imageUrl: outerwearImage },
+    { name: 'Activewear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: activewearImage },
+    { name: 'Accessories', description: 'Complete your look with premium men\'s accessories including belts, ties, watches, and footwear.', imageUrl: fashionAccessoriesImage },
   ];
 
   return (

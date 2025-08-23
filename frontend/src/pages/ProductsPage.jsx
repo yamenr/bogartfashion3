@@ -37,7 +37,9 @@ const ProductsPage = () => {
   const [categories, setCategories] = useState([
     { category_id: 'All Products', name: 'All Products' }
   ]);
-  const [manufacturers, setManufacturers] = useState([]);
+  const [sizes, setSizes] = useState([]);
+  const [colors, setColors] = useState([]);
+  const [materials, setMaterials] = useState([]);
   const [searchTerm, setSearchTerm] = useState(''); // Add search state
   const location = useLocation();
   const { addToCart } = useCart();
@@ -55,7 +57,9 @@ const ProductsPage = () => {
 
   const [selectedCategory, setSelectedCategory] = useState('All Products');
   const [priceRange, setPriceRange] = useState(100000);
-  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false); // State for mobile filters
 
   // Update selectedCategory if URL changes
@@ -71,6 +75,15 @@ const ProductsPage = () => {
       .then(res => {
         console.log('ProductsPage: Products fetched from backend:', res.data);
         setProducts(res.data);
+        
+        // Extract unique sizes, colors, and materials from products
+        const uniqueSizes = [...new Set(res.data.map(p => p.size).filter(Boolean))];
+        const uniqueColors = [...new Set(res.data.map(p => p.color).filter(Boolean))];
+        const uniqueMaterials = [...new Set(res.data.map(p => p.material).filter(Boolean))];
+        
+        setSizes(uniqueSizes.map(size => ({ id: size, name: size })));
+        setColors(uniqueColors.map(color => ({ id: color, name: color })));
+        setMaterials(uniqueMaterials.map(material => ({ id: material, name: material })));
       })
       .catch(err => console.error('ProductsPage: Error fetching products:', err));
 
@@ -84,19 +97,6 @@ const ProductsPage = () => {
         ]);
       })
       .catch(err => console.error('ProductsPage: Error fetching categories:', err));
-
-    // Fetch brands (assuming a /api/brands endpoint exists or can be derived)
-    // For now, let's use a placeholder if no dedicated API exists
-    const dummyBrands = [
-      { id: 'nike', name: 'Nike' },
-      { id: 'adidas', name: 'Adidas' },
-      { id: 'gucci', name: 'Gucci' },
-      { id: 'prada', name: 'Prada' },
-      { id: 'louis_vuitton', name: 'Louis Vuitton' },
-      { id: 'chanel', name: 'Chanel' },
-      { id: 'zara', name: 'Zara' },
-    ];
-    setManufacturers(dummyBrands);
 
   }, []);
 
@@ -117,9 +117,23 @@ const ProductsPage = () => {
     setPriceRange(e.target.value);
   };
 
-  const handleManufacturerChange = (e) => {
+  const handleSizeChange = (e) => {
     const { value, checked } = e.target;
-    setSelectedManufacturers(prev =>
+    setSelectedSizes(prev =>
+      checked ? [...prev, value] : prev.filter(s => s !== value)
+    );
+  };
+
+  const handleColorChange = (e) => {
+    const { value, checked } = e.target;
+    setSelectedColors(prev =>
+      checked ? [...prev, value] : prev.filter(c => c !== value)
+    );
+  };
+
+  const handleMaterialChange = (e) => {
+    const { value, checked } = e.target;
+    setSelectedMaterials(prev =>
       checked ? [...prev, value] : prev.filter(m => m !== value)
     );
   };
@@ -138,7 +152,9 @@ const ProductsPage = () => {
     const categoryName = categoryObject ? categoryObject.name : '';
     const matchesCategory = selectedCategory === 'All Products' || categoryName === selectedCategory;
     const matchesPrice = parseFloat(product.price) <= parseFloat(priceRange);
-    const matchesManufacturer = selectedManufacturers.length === 0 || selectedManufacturers.includes(product.manufacturer_id);
+    const matchesSize = selectedSizes.length === 0 || selectedSizes.includes(product.size);
+    const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color);
+    const matchesMaterial = selectedMaterials.length === 0 || selectedMaterials.includes(product.material);
     
     // Add search functionality
     const matchesSearch = searchTerm === '' || 
@@ -147,12 +163,13 @@ const ProductsPage = () => {
       (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesCategory && matchesPrice && matchesManufacturer && matchesSearch;
+    return matchesCategory && matchesPrice && matchesSize && matchesColor && matchesMaterial && matchesSearch;
   });
 
   const FilterSidebar = () => (
     <div className={`filters-sidebar ${filtersOpen ? 'open' : ''}`}>
       <button className="filter-close-button" onClick={() => setFiltersOpen(false)}>&times;</button>
+      
       <div className="filter-group">
         <h3>Price Range</h3>
         <input type="range" min="0" max="100000" value={priceRange} onChange={handlePriceChange} />
@@ -161,13 +178,53 @@ const ProductsPage = () => {
           <span>{formatNumberWithCommas(priceRange)}</span>
         </div>
       </div>
+
       <div className="filter-group">
-        <h3>Brands</h3>
-        {manufacturers.map(manufacturer => (
-          <div key={manufacturer.id}>
+        <h3>Size</h3>
+        {sizes.map(size => (
+          <div key={size.id}>
             <label>
-              <input type="checkbox" value={manufacturer.id} checked={selectedManufacturers.includes(manufacturer.id)} onChange={handleManufacturerChange} />
-              {manufacturer.name}
+              <input 
+                type="checkbox" 
+                value={size.id} 
+                checked={selectedSizes.includes(size.id)} 
+                onChange={handleSizeChange} 
+              />
+              {size.name}
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <div className="filter-group">
+        <h3>Color</h3>
+        {colors.map(color => (
+          <div key={color.id}>
+            <label>
+              <input 
+                type="checkbox" 
+                value={color.id} 
+                checked={selectedColors.includes(color.id)} 
+                onChange={handleColorChange} 
+              />
+              {color.name}
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <div className="filter-group">
+        <h3>Material</h3>
+        {materials.map(material => (
+          <div key={material.id}>
+            <label>
+              <input 
+                type="checkbox" 
+                value={material.id} 
+                checked={selectedMaterials.includes(material.id)} 
+                onChange={handleMaterialChange} 
+              />
+              {material.name}
             </label>
           </div>
         ))}
@@ -177,12 +234,6 @@ const ProductsPage = () => {
 
   return (
     <div className="products-page-container">
-      <div className="products-hero-section">
-        <h1>Premium Fashion Brands</h1>
-        <p>Discover our extensive range of high-quality fashion products from world-renowned brands</p>
-        <button className="shop-now-button">Shop Now</button>
-      </div>
-
       {/* Add Search Bar */}
       <div className="search-section">
         <form onSubmit={handleSearchSubmit} className="search-form">

@@ -4,14 +4,16 @@ import axios from 'axios';
 import PromotionsBanner from '../components/PromotionsBanner';
 import './Home.css'; // Import the new CSS file
 
-// Using online fashion stock images for better representation
-// Additional fashion-specific images for men's categories
-const casualWearImage = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop';
-const businessSuitsImage = 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=300&fit=crop';
-const denimImage = 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=300&fit=crop';
-const outerwearImage = 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=300&fit=crop';
-const activewearImage = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop';
-const fashionAccessoriesImage = 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400&h=300&fit=crop';
+// Using local fashion images from uploads folders
+// Images from the men's fashion store uploads
+const casualWearImage = 'http://localhost:3001/uploads/mens-clothing/white-tshirt.jpg';
+const businessSuitsImage = 'http://localhost:3001/uploads/formal-wear/black-suit.jpg';
+const denimImage = 'http://localhost:3001/uploads/mens-clothing/denim-jacket.jpg';
+const outerwearImage = 'http://localhost:3001/uploads/formal-wear/navy-blazer.jpg';
+const activewearImage = 'http://localhost:3001/uploads/sportswear/athletic-shorts.jpg';
+const fashionAccessoriesImage = 'http://localhost:3001/uploads/accessories/leather-belt.jpg';
+const footwearImage = 'http://localhost:3001/uploads/footwear/oxford-shoes.jpg';
+const watchesImage = 'http://localhost:3001/uploads/watches/analog-watch.jpg';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -43,12 +45,14 @@ const Home = () => {
   }
 
   const displayCategories = [
-    { name: 'Casual Wear', description: 'Premium casual clothing including t-shirts, polo shirts, and comfortable everyday wear. Perfect for relaxed, stylish looks.', imageUrl: casualWearImage },
-    { name: 'Business Suits', description: 'Sophisticated business suits and formal attire for the modern professional. Make a lasting impression with our premium collection.', imageUrl: businessSuitsImage },
-    { name: 'Denim & Jeans', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: denimImage },
-    { name: 'Outerwear', description: 'Stylish jackets and coats for every season. From casual denim jackets to formal blazers.', imageUrl: outerwearImage },
-    { name: 'Activewear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: activewearImage },
+    { name: 'Men Clothing', description: 'Premium casual clothing including t-shirts, polo shirts, and denim jackets. Perfect for relaxed, stylish looks.', imageUrl: casualWearImage },
+    { name: 'Formal Wear', description: 'Sophisticated business suits and formal attire for the modern professional. Make a lasting impression with our premium collection.', imageUrl: businessSuitsImage },
+    { name: 'Denim Collection', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: denimImage },
+    { name: 'Business Attire', description: 'Stylish blazers and formal jackets for every business occasion. From casual blazers to formal suits.', imageUrl: outerwearImage },
+    { name: 'Sportswear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: activewearImage },
     { name: 'Accessories', description: 'Complete your look with premium men\'s accessories including belts, ties, watches, and footwear.', imageUrl: fashionAccessoriesImage },
+    { name: 'Footwear', description: 'Premium men\'s footwear from classic Oxford shoes to casual sneakers. Quality and comfort for every occasion.', imageUrl: footwearImage },
+    { name: 'Watches', description: 'Elegant timepieces that complement your style. From classic analog to modern digital watches.', imageUrl: watchesImage },
   ];
 
   return (

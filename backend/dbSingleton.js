@@ -8,11 +8,11 @@ const dbSingleton = {
     if (!pool) {
       // Only create the pool when explicitly requested
       pool = mysql.createPool({
-        host: 'localhost',
-        user: 'root',
-        port: 3310,
-        password: '',
-        database: 'bogartfashion2',
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        port: process.env.DB_PORT || 3306,
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'bogartfashion2',
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0
@@ -27,7 +27,7 @@ const dbSingleton = {
       console.log('Database connection details:', {
         host: 'localhost',
         user: 'root',
-        port: 3310,
+        port: 3306,
         database: 'bogartfashion2'
       });
     }

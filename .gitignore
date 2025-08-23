@@ -117,3 +117,6 @@ Thumbs.db
 # Test files
 test-results/
 coverage/ 
+
+# Cursor preset file
+preset-for-cursor.md

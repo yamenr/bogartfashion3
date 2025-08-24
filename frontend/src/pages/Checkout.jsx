@@ -12,7 +12,10 @@ const Checkout = () => {
     const { user_id, currency } = useSettings();
     const navigate = useNavigate();
 
-    const [shippingAddress, setShippingAddress] = useState('');
+    const [streetAddress, setStreetAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [zipCode, setZipCode] = useState('');
+    const [phone, setPhone] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('credit_card');
     const [orderError, setOrderError] = useState(null);
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -22,8 +25,8 @@ const Checkout = () => {
 
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
-        if (!shippingAddress.trim()) {
-            setOrderError('Shipping address is required.');
+        if (!streetAddress.trim() || !city.trim() || !zipCode.trim() || !phone.trim()) {
+            setOrderError('All address fields are required.');
             return;
         }
         if (!user_id) {
@@ -46,7 +49,10 @@ const Checkout = () => {
                 price: item.price,
             })),
             total_amount: total,
-            shipping_address: shippingAddress,
+            street_address: streetAddress,
+            city: city,
+            zip_code: zipCode,
+            phone: phone,
             payment_method: paymentMethod,
             promotion_id: appliedPromotion ? appliedPromotion.promotion_id : null,
         };
@@ -84,8 +90,8 @@ const Checkout = () => {
     };
 
     const handlePayPalPayment = async (details) => {
-        if (!shippingAddress.trim()) {
-            setOrderError('Shipping address is required.');
+        if (!streetAddress.trim() || !city.trim() || !zipCode.trim() || !phone.trim()) {
+            setOrderError('All address fields are required.');
             return;
         }
         if (!user_id) {
@@ -108,7 +114,10 @@ const Checkout = () => {
                 price: item.price,
             })),
             total_amount: total,
-            shipping_address: shippingAddress,
+            street_address: streetAddress,
+            city: city,
+            zip_code: zipCode,
+            phone: phone,
             payment_method: 'paypal',
             promotion_id: appliedPromotion ? appliedPromotion.promotion_id : null,
             paypal_payment_id: details.id,
@@ -200,13 +209,46 @@ const Checkout = () => {
                 <form onSubmit={handlePlaceOrder} className="checkout-form-card">
                     <h2>Shipping & Payment</h2>
                     <div className="form-group">
-                        <label htmlFor="shippingAddress">Shipping Address</label>
+                        <label htmlFor="streetAddress">Street Address</label>
                         <input
-                            id="shippingAddress"
+                            id="streetAddress"
                             type="text"
-                            value={shippingAddress}
-                            onChange={(e) => setShippingAddress(e.target.value)}
-                            placeholder="Enter your full address"
+                            value={streetAddress}
+                            onChange={(e) => setStreetAddress(e.target.value)}
+                            placeholder="Enter your street address"
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="city">City</label>
+                        <input
+                            id="city"
+                            type="text"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            placeholder="Enter your city"
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="zipCode">Zip Code</label>
+                        <input
+                            id="zipCode"
+                            type="text"
+                            value={zipCode}
+                            onChange={(e) => setZipCode(e.target.value)}
+                            placeholder="Enter your zip code"
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="phone">Phone Number</label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Enter your phone number"
                             required
                         />
                     </div>

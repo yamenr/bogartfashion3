@@ -13,7 +13,9 @@ const Profile = () => {
     name: username || '',
     email: '', // Will fetch from backend
     phone: '', // Will fetch from backend
-    address: '', // Will fetch from backend
+    streetAddress: '', // Will fetch from backend
+    city: '', // Will fetch from backend
+    zipCode: '', // Will fetch from backend
     profilePic: null // Changed to null for better default handling
   });
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -66,7 +68,9 @@ const Profile = () => {
         name: data.name || prev.name,
         email: data.email || '',
         phone: data.phone || '',
-        address: data.city || '', // Assuming 'city' from DB maps to 'address' for simplicity
+        streetAddress: data.street_address || '',
+        city: data.city || '',
+        zipCode: data.zip_code || '',
         profilePic: data.profile_image || null
       }));
     } catch (err) {
@@ -567,7 +571,7 @@ const Profile = () => {
                   fontWeight: 'bold', 
                   fontSize: '1.05em' 
                 }}>
-                  Address
+                  Street Address
                 </label>
                 <FaMapMarkerAlt style={{ 
                   position: 'absolute', 
@@ -577,8 +581,86 @@ const Profile = () => {
                 }} />
                 <input
                   type="text"
-                  name="address"
-                  value={profileData.address}
+                  name="streetAddress"
+                  value={profileData.streetAddress}
+                  onChange={handleChange}
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '100%', 
+                    padding: '16px 12px 16px 42px', 
+                    border: '1px solid #555', 
+                    borderRadius: '8px', 
+                    fontSize: '1.08em', 
+                    marginBottom: '0', 
+                    boxSizing: 'border-box',
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#C2883A';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(194, 136, 58, 0.2)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#555';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+              
+              <div style={{ position: 'relative' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  color: '#C2883A', 
+                  fontWeight: 'bold', 
+                  fontSize: '1.05em' 
+                }}>
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={profileData.city}
+                  onChange={handleChange}
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '100%', 
+                    padding: '16px 12px 16px 42px', 
+                    border: '1px solid #555', 
+                    borderRadius: '8px', 
+                    fontSize: '1.08em', 
+                    marginBottom: '0', 
+                    boxSizing: 'border-box',
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#C2883A';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(194, 136, 58, 0.2)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#555';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+              
+              <div style={{ position: 'relative' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  color: '#C2883A', 
+                  fontWeight: 'bold', 
+                  fontSize: '1.05em' 
+                }}>
+                  Zip Code
+                </label>
+                <input
+                  type="text"
+                  name="zipCode"
+                  value={profileData.zipCode}
                   onChange={handleChange}
                   style={{ 
                     width: '100%', 

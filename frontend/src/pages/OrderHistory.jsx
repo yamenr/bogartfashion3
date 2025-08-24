@@ -95,6 +95,19 @@ const OrderHistory = ({ userId }) => {
               </div>
               <p style={{ margin: '0 0 10px 0', color: '#777' }}>Date: {new Date(order.order_date).toLocaleDateString()} {new Date(order.order_date).toLocaleTimeString()}</p>
               <p style={{ margin: '0 0 15px 0', color: '#777' }}>Status: <span style={{ color: order.status === 'pending' ? '#ffc107' : '#28a745', fontWeight: 'bold', textTransform: 'capitalize' }}>{order.status}</span></p>
+              
+              {/* Display structured address information */}
+              {(order.street_address || order.city || order.zip_code || order.phone) && (
+                <div style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
+                  <h4 style={{ fontSize: '1.1em', marginBottom: '8px', color: '#495057', fontWeight: 'bold' }}>Shipping Address:</h4>
+                  <div style={{ color: '#6c757d', fontSize: '0.95em', lineHeight: '1.4' }}>
+                    {order.street_address && <p style={{ margin: '0 0 4px 0' }}><strong>Street:</strong> {order.street_address}</p>}
+                    {order.city && <p style={{ margin: '0 0 4px 0' }}><strong>City:</strong> {order.city}</p>}
+                    {order.zip_code && <p style={{ margin: '0 0 4px 0' }}><strong>Zip Code:</strong> {order.zip_code}</p>}
+                    {order.phone && <p style={{ margin: '0 0 4px 0' }}><strong>Phone:</strong> {order.phone}</p>}
+                  </div>
+                </div>
+              )}
 
               <h3 style={{ fontSize: '1.2em', marginBottom: '10px', color: '#555' }}>Items:</h3>
               <ul style={{ listStyle: 'none', padding: '0' }}>

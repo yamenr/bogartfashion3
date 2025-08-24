@@ -18,7 +18,7 @@ router.post('/', authenticateToken, async (req, res) => {
         });
     }
     
-    const { user_id, items, total_amount, shipping_address, payment_method, promotion_id, paypal_payment_id } = req.body;
+    const { user_id, items, total_amount, street_address, city, zip_code, phone, payment_method, promotion_id, paypal_payment_id } = req.body;
     let connection;
 
     try {
@@ -47,10 +47,10 @@ router.post('/', authenticateToken, async (req, res) => {
         }
 
         const orderSql = `
-            INSERT INTO orders (user_id, total_amount, shipping_address, payment_method, promotion_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO orders (user_id, street_address, city, zip_code, phone, total_amount, payment_method, promotion_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        const [orderResult] = await connection.query(orderSql, [user_id, total_amount, shipping_address, payment_method, promotion_id]);
+        const [orderResult] = await connection.query(orderSql, [user_id, street_address, city, zip_code, phone, total_amount, payment_method, promotion_id]);
         
         // If PayPal payment, you might want to store the payment ID in a separate table
         if (payment_method === 'paypal' && paypal_payment_id) {
@@ -161,6 +161,7 @@ router.get('/history/:userId', authenticateToken, async (req, res) => {
     try {
         const sql = `
             SELECT o.order_id, o.order_date, o.total_amount, o.status,
+                   o.street_address, o.city, o.zip_code, o.phone,
                    oi.product_id, oi.quantity, oi.price, p.name as product_name, p.image as product_image
             FROM orders o
             JOIN order_items oi ON o.order_id = oi.order_id
@@ -179,6 +180,10 @@ router.get('/history/:userId', authenticateToken, async (req, res) => {
                     order_date: row.order_date,
                     total_amount: row.total_amount,
                     status: row.status,
+                    street_address: row.street_address,
+                    city: row.city,
+                    zip_code: row.zip_code,
+                    phone: row.phone,
                     items: []
                 };
             }
@@ -227,7 +232,7 @@ router.put('/:orderId/status', authenticateToken, requireAdmin, async (req, res)
 });
 
 // Get single order details (admin only)
-router.get('/:orderId', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/:orderId/admin', authenticateToken, requireAdmin, async (req, res) => {
     const { orderId } = req.params;
     try {
         const sql = `
@@ -272,6 +277,56 @@ router.get('/:orderId', authenticateToken, requireAdmin, async (req, res) => {
             })),
         };
 
+        res.json(orderDetails);
+    } catch (err) {
+        console.error(`Error fetching details for order ${orderId}:`, err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
+// Get single order details for regular users (their own orders only)
+router.get('/:orderId', authenticateToken, async (req, res) => {
+    const { orderId } = req.params;
+    const userId = req.user.user_id;
+    
+    try {
+        // First verify the order belongs to the user
+        const [orderCheck] = await db.query(
+            'SELECT user_id FROM orders WHERE order_id = ?',
+            [orderId]
+        );
+        
+        if (orderCheck.length === 0) {
+            return res.status(404).json({ message: 'Order not found.' });
+        }
+        
+        if (orderCheck[0].user_id !== userId) {
+            return res.status(403).json({ message: 'Access denied. This order does not belong to you.' });
+        }
+        
+        const sql = `
+            SELECT
+                o.order_id,
+                o.user_id,
+                o.order_date,
+                o.total_amount,
+                o.status,
+                o.street_address,
+                o.city,
+                o.zip_code,
+                o.phone,
+                o.payment_method,
+                o.promotion_id
+            FROM orders o
+            WHERE o.order_id = ?
+        `;
+        const [rows] = await db.query(sql, [orderId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Order not found.' });
+        }
+
+        const orderDetails = rows[0];
         res.json(orderDetails);
     } catch (err) {
         console.error(`Error fetching details for order ${orderId}:`, err);

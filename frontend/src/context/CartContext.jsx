@@ -62,6 +62,22 @@ export const CartProvider = ({ children }) => {
       return;
     }
     
+    // Prevent admin users from adding items to cart
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        if (payload.role === 'admin') {
+          alert('Admin users cannot add items to cart. Please use a regular user account for purchases.');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+      }
+    }
+    
     // Enhanced inventory validation
     if (!product.stock || product.stock < 0) {
       alert('This product has invalid inventory data and cannot be added to cart.');

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import OrderHistory from './OrderHistory'; // Import OrderHistory component
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaCamera, FaUserCircle } from 'react-icons/fa'; // Import icons
 import axios from 'axios';
+import PopupMessage from '../components/PopupMessage';
 
 const Profile = () => {
   const { user_id, username, loadingSettings, updateUsername, refreshUserData } = useSettings();
@@ -20,6 +21,7 @@ const Profile = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
+  const [popupMessage, setPopupMessage] = useState({ message: '', type: 'success', isVisible: false });
 
   // Default profile photo component
   const DefaultProfilePhoto = ({ size = 150, name = '' }) => (
@@ -173,7 +175,7 @@ const Profile = () => {
         }
       }
       
-      alert('Profile updated successfully!');
+      showPopupMessage('Profile updated successfully!', 'success');
       
       // Refresh profile data from backend to ensure consistency
       fetchProfileData();
@@ -183,8 +185,17 @@ const Profile = () => {
       
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert(`Error updating profile: ${error.response?.data?.message || error.message}`);
+      showPopupMessage(`Error updating profile: ${error.response?.data?.message || error.message}`, 'error');
     }
+  };
+
+  // Helper function to show popup messages
+  const showPopupMessage = (message, type = 'success') => {
+    setPopupMessage({ message, type, isVisible: true });
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setPopupMessage(prev => ({ ...prev, isVisible: false }));
+    }, 5000);
   };
 
   // Helper to get the correct profile image URL
@@ -649,6 +660,14 @@ const Profile = () => {
           {user_id && <OrderHistory userId={user_id} />}
         </div>
       )}
+      
+      {/* Popup Message */}
+      <PopupMessage
+        message={popupMessage.message}
+        type={popupMessage.type}
+        isVisible={popupMessage.isVisible}
+        onClose={() => setPopupMessage(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 };

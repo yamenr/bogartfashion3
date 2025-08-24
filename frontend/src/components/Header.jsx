@@ -43,7 +43,7 @@ export default function Header() {
             borderRadius: '4px',
             transition: 'background 0.2s, color 0.2s',
           }}>Products</Link>
-          {username && (
+          {username && !isUserAdmin && (
             <Link to="/cart" style={{
               padding: '8px 12px',
               color: '#fff',
@@ -86,6 +86,32 @@ export default function Header() {
 
       {/* Right section with auth links and store name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        {/* Admin Mode Badge and Manager Link */}
+        {isUserAdmin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              backgroundColor: '#C2883A',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '0.8em',
+              fontWeight: 'bold',
+              textTransform: 'uppercase'
+            }}>
+              Admin Mode
+            </span>
+            <Link to="/manager/dashboard" style={{
+              padding: '8px 12px',
+              color: '#C2883A',
+              textDecoration: 'none',
+              borderRadius: '4px',
+              border: '1px solid #C2883A',
+              transition: 'background 0.2s, color 0.2s',
+              fontWeight: 'bold'
+            }}>Manager</Link>
+          </div>
+        )}
+        
         <div style={{ display: 'flex', gap: '5px' }}>
           {!username ? (
             // Show login/signup when not logged in
@@ -143,16 +169,7 @@ export default function Header() {
             </div>
           )}
         </div>
-        {isUserAdmin && (
-          <Link to="/manager/dashboard" style={{
-            padding: '8px 12px',
-            color: '#C2883A',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            fontWeight: 'bold',
-            transition: 'background 0.2s, color 0.2s'
-          }}>Manager</Link>
-        )}
+
       </div>
     </nav>
   );

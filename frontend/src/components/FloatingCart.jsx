@@ -6,12 +6,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const FloatingCart = () => {
   const { cartItems } = useCart();
-  const { user_id } = useSettings();
+  const { user_id, isUserAdmin } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Don't show floating cart on cart page or if user is not logged in
-  if (!user_id || location.pathname === '/cart') {
+  // Don't show floating cart on cart page, if user is not logged in, or if user is admin
+  if (!user_id || location.pathname === '/cart' || isUserAdmin) {
     return null;
   }
 

@@ -57,9 +57,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
         category_id,
         size,
         color,
-        material,
         brand,
-        season,
         gender
     } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
@@ -84,7 +82,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
         // Analyze product similarity
         const newProduct = {
             name, description, price, stock, image, supplier_id, category_id,
-            size, color, material, brand, season, gender
+            size, color, brand, gender
         };
         
         const similarityAnalysis = await analyzeProductSimilarity(newProduct);
@@ -98,8 +96,8 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
             });
         }
 
-        const sql = `INSERT INTO products (name, description, price, stock, image, supplier_id, category_id, size, color, material, brand, season, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, material, brand, season, gender]);
+        const sql = `INSERT INTO products (name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender]);
         res.json({ message: 'Product added successfully' });
     } catch (err) {
         console.error('Database error adding product:', err);
@@ -159,8 +157,8 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyn
             }
         }
         
-        const sql = `UPDATE products SET name = ?, description = ?, price = ?, stock = ?, image = ?, supplier_id = ?, category_id = ?, size = ?, color = ?, material = ?, brand = ?, season = ?, gender = ? WHERE product_id = ?`;
-        const [result] = await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, material, brand, season, gender, id]);
+        const sql = `UPDATE products SET name = ?, description = ?, price = ?, stock = ?, image = ?, supplier_id = ?, category_id = ?, size = ?, color = ?, brand = ?, gender = ? WHERE product_id = ?`;
+        const [result] = await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender, id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }

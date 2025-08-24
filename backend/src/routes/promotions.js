@@ -148,6 +148,13 @@ function isItemApplicable(item, promotion) {
 
 // Apply a promotion code (public) - Frontend calls this endpoint
 router.post('/apply', async (req, res) => {
+    // Prevent admin users from applying promotions to cart
+    if (req.user && req.user.role === 'admin') {
+        return res.status(403).json({ 
+            message: 'Admin users cannot apply promotions to cart. Please use a regular user account for purchases.' 
+        });
+    }
+    
     const { promotionCode, cartItems } = req.body;
     if (!promotionCode || !cartItems) {
         return res.status(400).json({ message: 'Promotion code and cart items are required.' });
@@ -246,6 +253,13 @@ router.post('/apply', async (req, res) => {
 
 // Apply a promotion code (public) - Original endpoint
 router.post('/apply-promotion', async (req, res) => {
+    // Prevent admin users from applying promotions to cart
+    if (req.user && req.user.role === 'admin') {
+        return res.status(403).json({ 
+            message: 'Admin users cannot apply promotions to cart. Please use a regular user account for purchases.' 
+        });
+    }
+    
     const { code, cart } = req.body;
     if (!code || !cart) {
         return res.status(400).json({ message: 'Promotion code and cart are required.' });

@@ -32,14 +32,13 @@ const formatPriceWithCommas = (price, currency) => {
 };
 
 const ProductsPage = () => {
-  const { currency } = useSettings();
+  const { currency, isUserAdmin } = useSettings();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([
     { category_id: 'All Products', name: 'All Products' }
   ]);
   const [sizes, setSizes] = useState([]);
   const [colors, setColors] = useState([]);
-  const [materials, setMaterials] = useState([]);
   const [searchTerm, setSearchTerm] = useState(''); // Add search state
   const location = useLocation();
   const { addToCart } = useCart();
@@ -59,7 +58,6 @@ const ProductsPage = () => {
   const [priceRange, setPriceRange] = useState(100000);
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
-  const [selectedMaterials, setSelectedMaterials] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false); // State for mobile filters
 
   // Update selectedCategory if URL changes
@@ -76,14 +74,12 @@ const ProductsPage = () => {
         console.log('ProductsPage: Products fetched from backend:', res.data);
         setProducts(res.data);
         
-        // Extract unique sizes, colors, and materials from products
+        // Extract unique sizes and colors from products
         const uniqueSizes = [...new Set(res.data.map(p => p.size).filter(Boolean))];
         const uniqueColors = [...new Set(res.data.map(p => p.color).filter(Boolean))];
-        const uniqueMaterials = [...new Set(res.data.map(p => p.material).filter(Boolean))];
         
         setSizes(uniqueSizes.map(size => ({ id: size, name: size })));
         setColors(uniqueColors.map(color => ({ id: color, name: color })));
-        setMaterials(uniqueMaterials.map(material => ({ id: material, name: material })));
       })
       .catch(err => console.error('ProductsPage: Error fetching products:', err));
 
@@ -131,12 +127,7 @@ const ProductsPage = () => {
     );
   };
 
-  const handleMaterialChange = (e) => {
-    const { value, checked } = e.target;
-    setSelectedMaterials(prev =>
-      checked ? [...prev, value] : prev.filter(m => m !== value)
-    );
-  };
+
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -154,7 +145,7 @@ const ProductsPage = () => {
     const matchesPrice = parseFloat(product.price) <= parseFloat(priceRange);
     const matchesSize = selectedSizes.length === 0 || selectedSizes.includes(product.size);
     const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color);
-    const matchesMaterial = selectedMaterials.length === 0 || selectedMaterials.includes(product.material);
+    
     
     // Add search functionality
     const matchesSearch = searchTerm === '' || 
@@ -163,7 +154,7 @@ const ProductsPage = () => {
       (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesCategory && matchesPrice && matchesSize && matchesColor && matchesMaterial && matchesSearch;
+         return matchesCategory && matchesPrice && matchesSize && matchesColor && matchesSearch;
   });
 
   const FilterSidebar = () => (
@@ -213,27 +204,27 @@ const ProductsPage = () => {
         ))}
       </div>
 
-      <div className="filter-group">
-        <h3>Material</h3>
-        {materials.map(material => (
-          <div key={material.id}>
-            <label>
-              <input 
-                type="checkbox" 
-                value={material.id} 
-                checked={selectedMaterials.includes(material.id)} 
-                onChange={handleMaterialChange} 
-              />
-              {material.name}
-            </label>
-          </div>
-        ))}
-      </div>
+
     </div>
   );
 
   return (
     <div className="products-page-container">
+      {/* Admin Notice */}
+      {isUserAdmin && (
+        <div style={{
+          backgroundColor: '#C2883A',
+          color: 'white',
+          padding: '15px',
+          marginBottom: '20px',
+          borderRadius: '8px',
+          textAlign: 'center',
+          fontWeight: 'bold'
+        }}>
+          🔒 Admin Mode: You can view products but cannot make purchases. Use the Manager link to manage the store.
+        </div>
+      )}
+      
       {/* Add Search Bar */}
       <div className="search-section">
         <form onSubmit={handleSearchSubmit} className="search-form">

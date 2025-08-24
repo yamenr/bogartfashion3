@@ -19,10 +19,11 @@ import ProductDetails from './pages/ProductDetails';
 import OrderHistory from './pages/OrderHistory';
 import OrderConfirmation from './pages/OrderConfirmation';
 import PayPalTest from './pages/PayPalTest';
+import AdminRouteGuard from './components/AdminRouteGuard';
 
 import Dashboard from './pages/manager/Dashboard';
 import Products from './pages/manager/Products';
-import AdvancedInventory from './pages/manager/AdvancedInventory';
+
 import Promotions from './pages/manager/Promotions';
 import Customers from './pages/manager/Customers';
 import Settings from './pages/manager/Settings';
@@ -59,23 +60,47 @@ function App({ isManagerRoute }) {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/:id" element={<ProductDetails />} />
-        <Route path="/cart" element={<Cart />} />
+        <Route path="/cart" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <Cart />
+          </AdminRouteGuard>
+        } />
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/order-history" element={<OrderHistory />} />
-        <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-        <Route path="/paypal-test" element={<PayPalTest />} />
+        <Route path="/checkout" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <Checkout />
+          </AdminRouteGuard>
+        } />
+        <Route path="/profile" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <Profile />
+          </AdminRouteGuard>
+        } />
+        <Route path="/order-history" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <OrderHistory />
+          </AdminRouteGuard>
+        } />
+        <Route path="/order-confirmation/:orderId" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <OrderConfirmation />
+          </AdminRouteGuard>
+        } />
+        <Route path="/paypal-test" element={
+          <AdminRouteGuard redirectTo="/manager/dashboard">
+            <PayPalTest />
+          </AdminRouteGuard>
+        } />
 
         {/* Manager Routes */}
         <Route path="/manager/dashboard" element={<Dashboard />} />
         <Route path="/manager/products" element={<Products />} />
-        <Route path="/manager/advanced-inventory" element={<AdvancedInventory />} />
+
         <Route path="/manager/promotions" element={<Promotions />} />
         <Route path="/manager/customers" element={<Customers />} />
         <Route path="/manager/categories" element={<Categories />} />

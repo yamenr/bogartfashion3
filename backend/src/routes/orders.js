@@ -11,6 +11,13 @@ const emailService = new EmailService();
 
 // Create a new order (checkout)
 router.post('/', authenticateToken, async (req, res) => {
+    // Prevent admin users from creating orders
+    if (req.user.role === 'admin') {
+        return res.status(403).json({ 
+            message: 'Admin users cannot create orders. Please use a regular user account for purchases.' 
+        });
+    }
+    
     const { user_id, items, total_amount, shipping_address, payment_method, promotion_id, paypal_payment_id } = req.body;
     let connection;
 

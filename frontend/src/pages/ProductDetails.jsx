@@ -19,7 +19,7 @@ export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { user_id, username, currency } = useSettings();
+  const { user_id, username, currency, isUserAdmin } = useSettings();
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -63,6 +63,21 @@ export default function ProductDetails() {
 
   return (
     <div className="product-details-container">
+      {/* Admin Notice */}
+      {isUserAdmin && (
+        <div style={{
+          backgroundColor: '#C2883A',
+          color: 'white',
+          padding: '15px',
+          marginBottom: '20px',
+          borderRadius: '8px',
+          textAlign: 'center',
+          fontWeight: 'bold'
+        }}>
+          🔒 Admin Mode: You can view product details but cannot make purchases. Use the Manager link to manage the store.
+        </div>
+      )}
+      
       <button 
         onClick={() => navigate(-1)} 
         className="back-button"
@@ -98,7 +113,7 @@ export default function ProductDetails() {
           <div className="product-price">{formatPrice(product.price, currency)}</div>
           <p className="product-description">{product.description}</p>
           
-          {/* Fashion-specific details */}
+          {/* Essential Product Details */}
           <div className="product-details-box">
             <h3 className="product-details-title">Product Details</h3>
             <div className="product-details-grid">
@@ -120,16 +135,16 @@ export default function ProductDetails() {
                   <span className="product-detail-value">{product.color}</span>
                 </div>
               )}
-              {product.material && (
+              {product.stock && (
                 <div className="product-detail-item">
-                  <span className="product-detail-label">Material:</span>
-                  <span className="product-detail-value">{product.material}</span>
+                  <span className="product-detail-label">Quantity:</span>
+                  <span className="product-detail-value">{product.stock} available</span>
                 </div>
               )}
-              {product.season && (
+              {product.supplier_id && (
                 <div className="product-detail-item">
-                  <span className="product-detail-label">Season:</span>
-                  <span className="product-detail-value">{product.season}</span>
+                  <span className="product-detail-label">Supplier:</span>
+                  <span className="product-detail-value">Supplier #{product.supplier_id}</span>
                 </div>
               )}
               {product.gender && (

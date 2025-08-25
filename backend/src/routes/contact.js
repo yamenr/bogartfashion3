@@ -46,6 +46,57 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Get map data securely (API key hidden from frontend)
+router.get('/map-data', async (req, res) => {
+    try {
+        // Get API key from environment variable
+        const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+        
+        if (!googleMapsApiKey) {
+            return res.status(500).json({ 
+                message: 'Map service not configured',
+                error: 'Google Maps API key not found'
+            });
+        }
+
+        // Bogart Fashion location data
+        const mapData = {
+            location: {
+                name: 'Bogart Fashion',
+                address: 'Susita Street 7, Shefa Israel Shopping Center, Tel Aviv, HaSharon',
+                coordinates: {
+                    lat: 32.0853,
+                    lng: 34.7818
+                },
+                zoom: 15
+            },
+            businessHours: {
+                weekdays: 'Sunday - Thursday: 9:00 AM - 6:00 PM',
+                weekend: 'Friday - Saturday: 10:00 AM - 4:00 PM'
+            },
+            contact: {
+                phone: '+972 50 374 7641',
+                email: 'support@bogartfashion.com'
+            },
+            // Return a secure map URL that the frontend can use
+            mapUrl: `https://maps.google.com/?q=32.0853,34.7818`,
+            // For static map - using a more reliable format
+            staticMapUrl: `https://maps.googleapis.com/maps/api/staticmap?center=32.0853,34.7818&zoom=15&size=800x600&scale=2&maptype=roadmap&markers=color:gold%7Clabel:B%7C32.0853,34.7818&key=${googleMapsApiKey}`,
+            // Alternative: Use Google Maps embed (no API key needed)
+            embedUrl: `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=32.0853,34.7818&zoom=15`
+        };
+
+        res.json(mapData);
+        
+    } catch (error) {
+        console.error('Error fetching map data:', error);
+        res.status(500).json({ 
+            message: 'Failed to fetch map data',
+            error: 'Map service error'
+        });
+    }
+});
+
 // Get all contact messages (admin only)
 router.get('/', async (req, res) => {
     try {

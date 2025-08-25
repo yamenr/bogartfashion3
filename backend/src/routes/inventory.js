@@ -13,31 +13,65 @@ const db = dbSingleton.getConnection();
 // Get inventory summary (all variants with stock levels)
 router.get('/summary', async (req, res) => {
     try {
-        const [summary] = await db.execute(`
+        // First, get all active variants
+        const [variants] = await db.execute(`
             SELECT 
                 p.product_id,
                 p.name as product_name,
                 pv.variant_id,
                 pv.variant_name,
                 pv.variant_sku,
-                pv.variant_price,
-                l.location_id,
-                l.name as location_name,
-                l.type as location_type,
-                COUNT(ii.item_id) as total_items,
-                COUNT(CASE WHEN ii.status = 'available' THEN 1 END) as available_count,
-                COUNT(CASE WHEN ii.status = 'reserved' THEN 1 END) as reserved_count,
-                COUNT(CASE WHEN ii.status = 'sold' THEN 1 END) as sold_count,
-                COUNT(CASE WHEN ii.status = 'damaged' THEN 1 END) as damaged_count,
-                COUNT(CASE WHEN ii.status = 'returned' THEN 1 END) as returned_count
+                pv.variant_price
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.product_id
-            LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
-            LEFT JOIN locations l ON ii.location_id = l.location_id
             WHERE pv.is_active = 1
-            GROUP BY pv.variant_id, l.location_id
-            ORDER BY p.name, pv.variant_name, l.name
+            ORDER BY p.name, pv.variant_name
         `);
+        
+        // Then, get inventory summary for each variant
+        const summary = [];
+        for (const variant of variants) {
+            const [inventoryData] = await db.execute(`
+                SELECT 
+                    COALESCE(l.location_id, 0) as location_id,
+                    COALESCE(l.name, 'No Location') as location_name,
+                    COALESCE(l.type, 'unknown') as location_type,
+                    COUNT(ii.item_id) as total_items,
+                    COUNT(CASE WHEN ii.status = 'available' THEN 1 END) as available_count,
+                    COUNT(CASE WHEN ii.status = 'reserved' THEN 1 END) as reserved_count,
+                    COUNT(CASE WHEN ii.status = 'sold' THEN 1 END) as sold_count,
+                    COUNT(CASE WHEN ii.status = 'damaged' THEN 1 END) as damaged_count,
+                    COUNT(CASE WHEN ii.status = 'returned' THEN 1 END) as returned_count
+                FROM inventory_items ii
+                LEFT JOIN locations l ON ii.location_id = l.location_id
+                WHERE ii.variant_id = ?
+                GROUP BY COALESCE(l.location_id, 0)
+            `, [variant.variant_id]);
+            
+            if (inventoryData.length > 0) {
+                // Add inventory data for each location
+                for (const inv of inventoryData) {
+                    summary.push({
+                        ...variant,
+                        ...inv
+                    });
+                }
+            } else {
+                // Add variant with no inventory
+                summary.push({
+                    ...variant,
+                    location_id: 0,
+                    location_name: 'No Location',
+                    location_type: 'unknown',
+                    total_items: 0,
+                    available_count: 0,
+                    reserved_count: 0,
+                    sold_count: 0,
+                    damaged_count: 0,
+                    returned_count: 0
+                });
+            }
+        }
         
         res.json(summary);
     } catch (err) {
@@ -99,6 +133,32 @@ router.get('/location/:locationId', async (req, res) => {
         res.json(items);
     } catch (err) {
         console.error('Error fetching location inventory:', err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
+// Get all inventory items
+router.get('/items', async (req, res) => {
+    try {
+        const [items] = await db.execute(`
+            SELECT 
+                ii.*,
+                pv.variant_name,
+                pv.variant_sku,
+                pv.variant_price,
+                p.name as product_name,
+                l.name as location_name,
+                l.type as location_type
+            FROM inventory_items ii
+            JOIN product_variants pv ON ii.variant_id = pv.variant_id
+            JOIN products p ON pv.product_id = p.product_id
+            JOIN locations l ON ii.location_id = l.location_id
+            ORDER BY p.name, pv.variant_name, ii.status, ii.created_at DESC
+        `);
+        
+        res.json(items);
+    } catch (err) {
+        console.error('Error fetching all inventory items:', err);
         res.status(500).json({ message: 'Database error' });
     }
 });
@@ -165,6 +225,71 @@ router.post('/add-items', authenticateToken, requireAdmin, async (req, res) => {
     }
 });
 
+// Create individual inventory item
+router.post('/items', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { variant_id, location_id, status, condition, purchase_cost, supplier_batch, notes } = req.body;
+        
+        if (!variant_id || !location_id || !status) {
+            return res.status(400).json({ 
+                message: 'Variant ID, location ID, and status are required' 
+            });
+        }
+        
+        // Check if variant exists and is active
+        const [variantCheck] = await db.execute(
+            'SELECT variant_id FROM product_variants WHERE variant_id = ? AND is_active = 1',
+            [variant_id]
+        );
+        
+        if (variantCheck.length === 0) {
+            return res.status(400).json({ message: 'Variant not found or inactive' });
+        }
+        
+        // Check if location exists and is active
+        const [locationCheck] = await db.execute(
+            'SELECT location_id FROM locations WHERE location_id = ? AND is_active = 1',
+            [location_id]
+        );
+        
+        if (locationCheck.length === 0) {
+            return res.status(400).json({ message: 'Location not found or inactive' });
+        }
+        
+        // Create inventory item
+        const [result] = await db.execute(`
+            INSERT INTO inventory_items (variant_id, location_id, status, \`condition\`, purchase_cost, supplier_batch, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [variant_id, location_id, status, condition || 'new', purchase_cost || null, supplier_batch || null, notes || null]);
+        
+        const itemId = result.insertId;
+        
+        // Get the created item
+        const [newItem] = await db.execute(`
+            SELECT 
+                ii.*,
+                pv.variant_name,
+                pv.variant_sku,
+                p.name as product_name,
+                l.name as location_name
+            FROM inventory_items ii
+            JOIN product_variants pv ON ii.variant_id = pv.variant_id
+            JOIN products p ON pv.product_id = p.product_id
+            JOIN locations l ON ii.location_id = l.location_id
+            WHERE ii.item_id = ?
+        `, [itemId]);
+        
+        res.status(201).json({
+            message: 'Inventory item created successfully',
+            item: newItem[0]
+        });
+        
+    } catch (err) {
+        console.error('Error creating inventory item:', err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
 // Update inventory item status
 router.put('/item/:itemId/status', authenticateToken, requireAdmin, async (req, res) => {
     try {
@@ -211,14 +336,12 @@ router.put('/item/:itemId/status', authenticateToken, requireAdmin, async (req, 
 // Transfer inventory items between locations
 router.post('/transfer', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { item_ids, from_location_id, to_location_id, notes, performed_by } = req.body;
+        const { variant_id, from_location_id, to_location_id, quantity, notes } = req.body;
         
-        if (!item_ids || !Array.isArray(item_ids) || item_ids.length === 0) {
-            return res.status(400).json({ message: 'Item IDs array is required' });
-        }
-        
-        if (!from_location_id || !to_location_id) {
-            return res.status(400).json({ message: 'From and to location IDs are required' });
+        if (!variant_id || !from_location_id || !to_location_id || !quantity || quantity <= 0) {
+            return res.status(400).json({ 
+                message: 'Variant ID, from location, to location, and positive quantity are required' 
+            });
         }
         
         if (from_location_id === to_location_id) {
@@ -235,19 +358,34 @@ router.post('/transfer', authenticateToken, requireAdmin, async (req, res) => {
             return res.status(400).json({ message: 'One or both locations not found' });
         }
         
+        // Check if variant exists
+        const [variantCheck] = await db.execute(
+            'SELECT variant_id FROM product_variants WHERE variant_id = ? AND is_active = 1',
+            [variant_id]
+        );
+        
+        if (variantCheck.length === 0) {
+            return res.status(400).json({ message: 'Variant not found or inactive' });
+        }
+        
+        // Check if there are enough available items at the source location
+        const [availableItems] = await db.execute(`
+            SELECT item_id FROM inventory_items 
+            WHERE variant_id = ? AND location_id = ? AND status = 'available'
+            LIMIT ?
+        `, [variant_id, from_location_id, quantity]);
+        
+        if (availableItems.length < quantity) {
+            return res.status(400).json({ 
+                message: `Only ${availableItems.length} items available for transfer, requested ${quantity}` 
+            });
+        }
+        
         const transferredItems = [];
         
-        // Transfer each item
-        for (const itemId of item_ids) {
-            // Check if item exists and is at the from location
-            const [itemCheck] = await db.execute(
-                'SELECT * FROM inventory_items WHERE item_id = ? AND location_id = ? AND status = "available"',
-                [itemId, from_location_id]
-            );
-            
-            if (itemCheck.length === 0) {
-                continue; // Skip this item
-            }
+        // Transfer the requested quantity
+        for (let i = 0; i < quantity; i++) {
+            const itemId = availableItems[i].item_id;
             
             // Update item location
             await db.execute(
@@ -260,13 +398,22 @@ router.post('/transfer', authenticateToken, requireAdmin, async (req, res) => {
                 INSERT INTO inventory_transactions 
                 (item_id, transaction_type, from_location_id, to_location_id, notes, performed_by)
                 VALUES (?, 'transfer', ?, ?, ?, ?)
-            `, [itemId, from_location_id, to_location_id, notes, performed_by]);
+            `, [itemId, from_location_id, to_location_id, notes || null, req.user?.user_id || null]);
             
             // Get updated item
-            const [updatedItem] = await db.execute(
-                'SELECT * FROM inventory_items WHERE item_id = ?',
-                [itemId]
-            );
+            const [updatedItem] = await db.execute(`
+                SELECT 
+                    ii.*,
+                    pv.variant_name,
+                    pv.variant_sku,
+                    p.name as product_name,
+                    l.name as location_name
+                FROM inventory_items ii
+                JOIN product_variants pv ON ii.variant_id = pv.variant_id
+                JOIN products p ON pv.product_id = p.product_id
+                JOIN locations l ON ii.location_id = l.location_id
+                WHERE ii.item_id = ?
+            `, [itemId]);
             
             transferredItems.push(updatedItem[0]);
         }

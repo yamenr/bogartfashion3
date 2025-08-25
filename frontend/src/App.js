@@ -23,6 +23,8 @@ import AdminRouteGuard from './components/AdminRouteGuard';
 
 import Dashboard from './pages/manager/Dashboard';
 import Products from './pages/manager/Products';
+import AnalyticsDashboard from './pages/manager/AnalyticsDashboard';
+import AdvancedInventory from './pages/manager/AdvancedInventory';
 
 import Promotions from './pages/manager/Promotions';
 import Customers from './pages/manager/Customers';
@@ -100,6 +102,8 @@ function App({ isManagerRoute }) {
         {/* Manager Routes */}
         <Route path="/manager/dashboard" element={<Dashboard />} />
         <Route path="/manager/products" element={<Products />} />
+        <Route path="/manager/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/manager/advanced-inventory" element={<AdvancedInventory />} />
 
         <Route path="/manager/promotions" element={<Promotions />} />
         <Route path="/manager/customers" element={<Customers />} />

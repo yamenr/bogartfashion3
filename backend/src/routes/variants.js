@@ -11,7 +11,7 @@ const db = dbSingleton.getConnection();
 // =====================================================
 
 // Get all variants
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const [variants] = await db.execute(`
             SELECT 
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all variants for a specific product
-router.get('/product/:productId', async (req, res) => {
+router.get('/product/:productId', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { productId } = req.params;
         
@@ -55,7 +55,7 @@ router.get('/product/:productId', async (req, res) => {
 });
 
 // Get all variants with inventory summary
-router.get('/with-inventory', async (req, res) => {
+router.get('/with-inventory', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const [variants] = await db.execute(`
             SELECT 
@@ -84,12 +84,12 @@ router.get('/with-inventory', async (req, res) => {
 // Create a new variant
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { product_id, color, size, material, price, sku } = req.body;
+        const { product_id, variant_name, variant_sku, variant_price } = req.body;
         
         // Validate required fields
-        if (!product_id || !color || !size || !price) {
+        if (!product_id || !variant_name || !variant_sku || !variant_price) {
             return res.status(400).json({ 
-                message: 'Product ID, color, size, and price are required' 
+                message: 'Product ID, variant name, SKU, and price are required' 
             });
         }
         
@@ -105,21 +105,21 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
         
         // Check if variant already exists
         const [existingVariant] = await db.execute(
-            'SELECT variant_id FROM product_variants WHERE product_id = ? AND color = ? AND size = ?',
-            [product_id, color, size]
+            'SELECT variant_id FROM product_variants WHERE product_id = ? AND variant_sku = ?',
+            [product_id, variant_sku]
         );
         
         if (existingVariant.length > 0) {
             return res.status(400).json({ 
-                message: 'Variant with this color and size already exists for this product' 
+                message: 'Variant with this SKU already exists for this product' 
             });
         }
         
         // Create new variant
         const [result] = await db.execute(`
-            INSERT INTO product_variants (product_id, color, size, material, price, sku)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [product_id, color, size, material, price, sku]);
+            INSERT INTO product_variants (product_id, variant_name, variant_sku, variant_price)
+            VALUES (?, ?, ?, ?)
+        `, [product_id, variant_name, variant_sku, variant_price]);
         
         const variantId = result.insertId;
         
@@ -144,7 +144,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 router.put('/:variantId', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { variantId } = req.params;
-        const { color, size, material, price, sku, is_active } = req.body;
+        const { variant_name, variant_sku, variant_price, is_active } = req.body;
         
         // Check if variant exists
         const [existingVariant] = await db.execute(
@@ -159,9 +159,9 @@ router.put('/:variantId', authenticateToken, requireAdmin, async (req, res) => {
         // Update variant
         await db.execute(`
             UPDATE product_variants 
-            SET color = ?, size = ?, material = ?, price = ?, sku = ?, is_active = ?
+            SET variant_name = ?, variant_sku = ?, variant_price = ?, is_active = ?
             WHERE variant_id = ?
-        `, [color, size, material, price, sku, is_active, variantId]);
+        `, [variant_name, variant_sku, variant_price, is_active, variantId]);
         
         // Get updated variant
         const [updatedVariant] = await db.execute(

@@ -1,19 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useSettings } from '../../context/SettingsContext';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdvancedInventory.css';
 
 const AdvancedInventory = () => {
+    const { isUserAdmin, loadingSettings } = useSettings();
+    const navigate = useNavigate();
+    
     const [activeTab, setActiveTab] = useState('variants');
     const [variants, setVariants] = useState([]);
     const [locations, setLocations] = useState([]);
     const [inventory, setInventory] = useState([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingLocations, setLoadingLocations] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     // Form states
     const [showVariantForm, setShowVariantForm] = useState(false);
     const [showLocationForm, setShowLocationForm] = useState(false);
+    const [showInventoryForm, setShowInventoryForm] = useState(false);
+    const [showTransferForm, setShowTransferForm] = useState(false);
+    const [editingVariant, setEditingVariant] = useState(null);
+    const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
     const [variantForm, setVariantForm] = useState({
         product_id: '',
         variant_name: '',
@@ -25,6 +36,23 @@ const AdvancedInventory = () => {
         type: 'warehouse',
         city: '',
         country: ''
+    });
+    const [inventoryForm, setInventoryForm] = useState({
+        variant_id: '',
+        location_id: '',
+        quantity: 1,
+        status: 'available',
+        condition: 'new',
+        purchase_cost: '',
+        supplier_batch: '',
+        notes: ''
+    });
+    const [transferForm, setTransferForm] = useState({
+        from_location_id: '',
+        to_location_id: '',
+        variant_id: '',
+        quantity: 1,
+        notes: ''
     });
 
     // SKU Generator states
@@ -76,46 +104,76 @@ const AdvancedInventory = () => {
         }
     };
 
+    // Check authentication
     useEffect(() => {
-        loadData();
-        loadProducts();
-    }, [activeTab]);
-
-    const loadData = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            switch (activeTab) {
-                case 'variants':
-                    const variantsRes = await axios.get('/api/variants');
-                    setVariants(variantsRes.data);
-                    break;
-                case 'locations':
-                    const locationsRes = await axios.get('/api/locations');
-                    setLocations(locationsRes.data);
-                    break;
-                case 'inventory':
-                    const inventoryRes = await axios.get('/api/inventory/summary');
-                    setInventory(inventoryRes.data);
-                    break;
-                default:
-                    break;
+        if (loadingSettings) return;
+        
+        if (!isUserAdmin) {
+            navigate('/login');
+            return;
+        }
+        
+        // Always load essential data (locations, products) when component mounts
+        const loadEssentialData = async () => {
+            try {
+                setLoadingLocations(true);
+                const token = localStorage.getItem('token');
+                const config = {
+                    headers: { Authorization: `Bearer ${token}` }
+                };
+                
+                const [locationsRes, productsRes] = await Promise.all([
+                    axios.get('/api/locations', config),
+                    axios.get('/api/products', config)
+                ]);
+                
+                setLocations(locationsRes.data);
+                setProducts(productsRes.data);
+                console.log('Essential data loaded:', { 
+                    locations: locationsRes.data.length, 
+                    products: productsRes.data.length 
+                });
+            } catch (err) {
+                console.error('Error loading essential data:', err);
+                setError('Failed to load essential data');
+            } finally {
+                setLoadingLocations(false);
             }
-        } catch (err) {
-            setError(err.response?.data?.message || 'Error loading data');
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+        
+        loadEssentialData();
+    }, [isUserAdmin, loadingSettings, navigate]);
 
-    const loadProducts = async () => {
-        try {
-            const productsRes = await axios.get('/api/products');
-            setProducts(productsRes.data);
-        } catch (err) {
-            console.error('Error loading products:', err);
-        }
-    };
+    // Load tab-specific data when activeTab changes
+    useEffect(() => {
+        if (!isUserAdmin || loadingSettings) return;
+        
+        const loadTabData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const config = {
+                    headers: { Authorization: `Bearer ${token}` }
+                };
+                
+                switch (activeTab) {
+                    case 'variants':
+                        const variantsRes = await axios.get('/api/variants', config);
+                        setVariants(variantsRes.data);
+                        break;
+                    case 'inventory':
+                        const inventoryRes = await axios.get('/api/inventory/summary', config);
+                        setInventory(inventoryRes.data);
+                        break;
+                    default:
+                        break;
+                }
+            } catch (err) {
+                setError(err.response?.data?.message || 'Error loading tab data');
+            }
+        };
+        
+        loadTabData();
+    }, [activeTab, isUserAdmin, loadingSettings]);
 
     const generateSKU = () => {
         const { productType, color, size } = skuGenerator;
@@ -129,28 +187,286 @@ const AdvancedInventory = () => {
         generateSKU();
     }, [skuGenerator]);
 
+    const handleEditVariant = (variant) => {
+        setEditingVariant(variant);
+        setVariantForm({
+            product_id: variant.product_id,
+            variant_name: variant.variant_name,
+            variant_sku: variant.variant_sku,
+            variant_price: variant.variant_price
+        });
+        setShowVariantForm(true);
+    };
+
     const handleVariantSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/api/variants', variantForm);
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            
+            if (editingVariant) {
+                // Update existing variant
+                await axios.put(`/api/variants/${editingVariant.variant_id}`, variantForm, config);
+                setEditingVariant(null);
+            } else {
+                // Create new variant
+                await axios.post('/api/variants', variantForm, config);
+            }
+            
             setShowVariantForm(false);
             setVariantForm({ product_id: '', variant_name: '', variant_sku: '', variant_price: '' });
             setSkuGenerator({ productType: '', color: '', size: '' });
-            loadData();
+            // Reload variants data
+            if (activeTab === 'variants') {
+                const loadVariants = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const config = { headers: { Authorization: `Bearer ${token}` } };
+                        const variantsRes = await axios.get('/api/variants', config);
+                        setVariants(variantsRes.data);
+                    } catch (err) {
+                        console.error('Error reloading variants:', err);
+                    }
+                };
+                loadVariants();
+            }
         } catch (err) {
-            setError(err.response?.data?.message || 'Error creating variant');
+            setError(err.response?.data?.message || 'Error saving variant');
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingVariant(null);
+        setVariantForm({
+            product_id: '',
+            variant_name: '',
+            variant_sku: '',
+            variant_price: ''
+        });
+    };
+
+    const handleDeleteVariant = async (variant) => {
+        if (window.confirm(`Are you sure you want to delete variant "${variant.variant_name}"?`)) {
+            try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { Authorization: `Bearer ${token}` } };
+                
+                await axios.delete(`/api/variants/${variant.variant_id}`, config);
+                
+                // Reload variants data
+                if (activeTab === 'variants') {
+                    const loadVariants = async () => {
+                        try {
+                            const token = localStorage.getItem('token');
+                            const config = { headers: { Authorization: `Bearer ${token}` } };
+                            const variantsRes = await axios.get('/api/variants', config);
+                            setVariants(variantsRes.data);
+                        } catch (err) {
+                            console.error('Error reloading variants:', err);
+                        }
+                    };
+                    loadVariants();
+                }
+                
+                setSuccess('Variant deleted successfully');
+            } catch (err) {
+                setError(err.response?.data?.message || 'Error deleting variant');
+            }
         }
     };
 
     const handleLocationSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('/api/locations', locationForm);
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            await axios.post('/api/locations', locationForm, config);
             setShowLocationForm(false);
             setLocationForm({ name: '', type: 'warehouse', city: '', country: '' });
-            loadData();
+            // Reload locations data
+            if (activeTab === 'locations') {
+                const loadLocations = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const config = { headers: { Authorization: `Bearer ${token}` } };
+                        const locationsRes = await axios.get('/api/locations', config);
+                        setLocations(locationsRes.data);
+                    } catch (err) {
+                        console.error('Error reloading locations:', err);
+                    }
+                };
+                loadLocations();
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Error creating location');
+        }
+    };
+
+    const handleDeleteLocation = async (location) => {
+        if (window.confirm(`Are you sure you want to delete location "${location.name}"?`)) {
+            try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { Authorization: `Bearer ${token}` } };
+                
+                await axios.delete(`/api/locations/${location.location_id}`, config);
+                
+                // Reload locations data
+                if (activeTab === 'locations') {
+                    const loadLocations = async () => {
+                        try {
+                            const token = localStorage.getItem('token');
+                            const config = { headers: { Authorization: `Bearer ${token}` } };
+                            const locationsRes = await axios.get('/api/locations', config);
+                            setLocations(locationsRes.data);
+                        } catch (err) {
+                            console.error('Error reloading locations:', err);
+                        }
+                    };
+                    loadLocations();
+                }
+                
+                setSuccess('Location deleted successfully');
+            } catch (err) {
+                setError(err.response?.data?.message || 'Error deleting location');
+            }
+        }
+    };
+
+    const handleAddInventoryItems = () => {
+        // Ensure locations are loaded before opening the form
+        if (locations.length === 0) {
+            // Reload locations data
+            if (activeTab === 'inventory') {
+                const loadLocations = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const config = { headers: { Authorization: `Bearer ${token}` } };
+                        const locationsRes = await axios.get('/api/locations', config);
+                        setLocations(locationsRes.data);
+                    } catch (err) {
+                        console.error('Error reloading locations for inventory:', err);
+                    }
+                };
+                loadLocations();
+            }
+        }
+        setShowInventoryForm(true);
+        setInventoryForm({
+            variant_id: '',
+            location_id: '',
+            quantity: 1,
+            status: 'available',
+            condition: 'new',
+            purchase_cost: '',
+            supplier_batch: '',
+            notes: ''
+        });
+    };
+
+    const handleTransferItems = (item) => {
+        setSelectedInventoryItem(item);
+        setTransferForm({
+            from_location_id: item.location_id,
+            to_location_id: '',
+            variant_id: item.variant_id,
+            quantity: 1,
+            notes: ''
+        });
+        setShowTransferForm(true);
+    };
+
+    const handleInventorySubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            
+            // Create multiple inventory items based on quantity
+            const promises = [];
+            for (let i = 0; i < inventoryForm.quantity; i++) {
+                promises.push(axios.post('/api/inventory/items', {
+                    variant_id: inventoryForm.variant_id,
+                    location_id: inventoryForm.location_id,
+                    status: inventoryForm.status,
+                    condition: inventoryForm.condition,
+                    purchase_cost: inventoryForm.purchase_cost || null,
+                    supplier_batch: inventoryForm.supplier_batch || null,
+                    notes: inventoryForm.notes || null
+                }, config));
+            }
+            
+            await Promise.all(promises);
+            setShowInventoryForm(false);
+            setInventoryForm({
+                variant_id: '',
+                location_id: '',
+                quantity: 1,
+                status: 'available',
+                condition: 'new',
+                purchase_cost: '',
+                supplier_batch: '',
+                notes: ''
+            });
+            // Reload inventory data
+            if (activeTab === 'inventory') {
+                const loadInventory = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const config = { headers: { Authorization: `Bearer ${token}` } };
+                        const inventoryRes = await axios.get('/api/inventory/summary', config);
+                        setInventory(inventoryRes.data);
+                    } catch (err) {
+                        console.error('Error reloading inventory:', err);
+                    }
+                };
+                loadInventory();
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Error adding inventory items');
+        }
+    };
+
+    const handleTransferSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            
+            // Transfer items between locations
+            await axios.post('/api/inventory/transfer', transferForm, config);
+            setShowTransferForm(false);
+            setTransferForm({
+                from_location_id: '',
+                to_location_id: '',
+                variant_id: '',
+                quantity: 1,
+                notes: ''
+            });
+            setSelectedInventoryItem(null);
+            // Reload inventory data
+            if (activeTab === 'inventory') {
+                const loadInventory = async () => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const config = { headers: { Authorization: `Bearer ${token}` } };
+                        const inventoryRes = await axios.get('/api/inventory/summary', config);
+                        setInventory(inventoryRes.data);
+                    } catch (err) {
+                        console.error('Error reloading inventory:', err);
+                    }
+                };
+                loadInventory();
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Error transferring items');
         }
     };
 
@@ -171,6 +487,15 @@ const AdvancedInventory = () => {
             default: return 'inactive';
         }
     };
+
+    // Show loading while checking authentication
+    if (loadingSettings || !isUserAdmin) {
+        return (
+            <div className="admin-container">
+                <div className="loading">Loading Advanced Inventory Management...</div>
+            </div>
+        );
+    }
 
     const renderVariantsTab = () => (
         <div className="admin-section">
@@ -218,8 +543,8 @@ const AdvancedInventory = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="btn btn-small btn-secondary">Edit</button>
-                                        <button className="btn btn-small btn-danger">Delete</button>
+                                        <button className="btn btn-small btn-secondary" onClick={() => handleEditVariant(variant)}>Edit</button>
+                                        <button className="btn btn-small btn-danger" onClick={() => handleDeleteVariant(variant)}>Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -242,7 +567,7 @@ const AdvancedInventory = () => {
                 </button>
             </div>
             
-            {loading ? (
+            {loadingLocations ? (
                 <div className="loading">Loading locations...</div>
             ) : (
                 <div className="data-table">
@@ -279,7 +604,7 @@ const AdvancedInventory = () => {
                                     </td>
                                     <td>
                                         <button className="btn btn-small btn-secondary">Edit</button>
-                                        <button className="btn btn-small btn-danger">Delete</button>
+                                        <button className="btn btn-small btn-danger" onClick={() => handleDeleteLocation(location)}>Delete</button>
                                     </td>
                                 </tr>
                             ))}
@@ -295,7 +620,7 @@ const AdvancedInventory = () => {
             <div className="section-header">
                 <h2>Inventory Summary ({inventory.length} combinations)</h2>
                 <div>
-                    <button className="btn btn-primary">Add Inventory Items</button>
+                    <button className="btn btn-primary" onClick={handleAddInventoryItems}>Add Inventory Items</button>
                     <button className="btn btn-secondary">Export Data</button>
                 </div>
             </div>
@@ -348,8 +673,20 @@ const AdvancedInventory = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="btn btn-small btn-secondary">Transfer</button>
-                                        <button className="btn btn-small btn-primary">Add Items</button>
+                                        <button className="btn btn-small btn-secondary" onClick={() => handleTransferItems(item)}>Transfer</button>
+                                        <button className="btn btn-small btn-primary" onClick={() => {
+                                            setInventoryForm({
+                                                variant_id: item.variant_id,
+                                                location_id: item.location_id,
+                                                quantity: 1,
+                                                status: 'available',
+                                                condition: 'new',
+                                                purchase_cost: '',
+                                                supplier_batch: '',
+                                                notes: ''
+                                            });
+                                            setShowInventoryForm(true);
+                                        }}>Add Items</button>
                                     </td>
                                 </tr>
                             ))}
@@ -371,6 +708,13 @@ const AdvancedInventory = () => {
                 <div className="alert alert-error">
                     {error}
                     <button onClick={() => setError('')}>&times;</button>
+                </div>
+            )}
+
+            {success && (
+                <div className="alert alert-success">
+                    {success}
+                    <button onClick={() => setSuccess('')}>&times;</button>
                 </div>
             )}
 
@@ -406,7 +750,7 @@ const AdvancedInventory = () => {
                 <div className="modal-overlay">
                     <div className="modal">
                         <div className="modal-header">
-                            <h3>Add New Variant with Smart SKU Generator</h3>
+                            <h3>{editingVariant ? 'Edit Variant' : 'Add New Variant with Smart SKU Generator'}</h3>
                             <button onClick={() => setShowVariantForm(false)}>&times;</button>
                         </div>
                         <form onSubmit={handleVariantSubmit}>
@@ -501,8 +845,10 @@ const AdvancedInventory = () => {
                             </div>
 
                             <div className="form-actions">
-                                <button type="submit" className="btn btn-primary">Create Variant</button>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowVariantForm(false)}>
+                                <button type="submit" className="btn btn-primary">
+                                    {editingVariant ? 'Update Variant' : 'Create Variant'}
+                                </button>
+                                <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>
                                     Cancel
                                 </button>
                             </div>
@@ -563,6 +909,217 @@ const AdvancedInventory = () => {
                             <div className="form-actions">
                                 <button type="submit" className="btn btn-primary">Create Location</button>
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowLocationForm(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Inventory Items Form Modal */}
+            {showInventoryForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h3>{editingVariant ? 'Edit Inventory Items' : 'Add New Inventory Items'}</h3>
+                            <button onClick={() => setShowInventoryForm(false)}>&times;</button>
+                        </div>
+                        <form onSubmit={handleInventorySubmit}>
+                            {/* Debug info */}
+                            <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                                <div><strong>Debug Info:</strong></div>
+                                <div>Locations loaded: {locations.length}</div>
+                                <div>Products loaded: {products.length}</div>
+                                <div>Variants loaded: {variants.length}</div>
+                                <div>Loading locations: {loadingLocations ? 'Yes' : 'No'}</div>
+                                {locations.length > 0 && (
+                                    <div>
+                                        <div><strong>Available locations:</strong></div>
+                                        {locations.map(loc => (
+                                            <div key={loc.location_id} style={{ marginLeft: '10px' }}>
+                                                • {loc.name} (ID: {loc.location_id}) - {loc.type}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Product:</label>
+                                <select
+                                    value={inventoryForm.variant_id}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, variant_id: e.target.value})}
+                                    required
+                                >
+                                    <option value="">Select a variant</option>
+                                    {variants.map(variant => (
+                                        <option key={variant.variant_id} value={variant.variant_id}>
+                                            {variant.product_name} - {variant.variant_name} (ID: {variant.variant_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Location:</label>
+                                <select
+                                    value={inventoryForm.location_id}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, location_id: e.target.value})}
+                                    required
+                                >
+                                    <option value="">Select a location</option>
+                                    {locations.map(location => (
+                                        <option key={location.location_id} value={location.location_id}>
+                                            {location.name} (ID: {location.location_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Quantity:</label>
+                                <input
+                                    type="number"
+                                    value={inventoryForm.quantity}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, quantity: parseInt(e.target.value) || 1})}
+                                    min="1"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Status:</label>
+                                <select
+                                    value={inventoryForm.status}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, status: e.target.value})}
+                                >
+                                    <option value="available">Available</option>
+                                    <option value="reserved">Reserved</option>
+                                    <option value="sold">Sold</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Condition:</label>
+                                <select
+                                    value={inventoryForm.condition}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, condition: e.target.value})}
+                                >
+                                    <option value="new">New</option>
+                                    <option value="used">Used</option>
+                                    <option value="damaged">Damaged</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Purchase Cost:</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={inventoryForm.purchase_cost}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, purchase_cost: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Supplier Batch:</label>
+                                <input
+                                    type="text"
+                                    value={inventoryForm.supplier_batch}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, supplier_batch: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Notes:</label>
+                                <textarea
+                                    value={inventoryForm.notes}
+                                    onChange={(e) => setInventoryForm({...inventoryForm, notes: e.target.value})}
+                                    rows="3"
+                                />
+                            </div>
+                            <div className="form-actions">
+                                <button type="submit" className="btn btn-primary">
+                                    {editingVariant ? 'Update Inventory Items' : 'Create Inventory Items'}
+                                </button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowInventoryForm(false)}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Inventory Transfer Form Modal */}
+            {showTransferForm && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h3>Transfer Inventory Items</h3>
+                            <button onClick={() => setShowTransferForm(false)}>&times;</button>
+                        </div>
+                        <form onSubmit={handleTransferSubmit}>
+                            <div className="form-group">
+                                <label>From Location:</label>
+                                <select
+                                    value={transferForm.from_location_id}
+                                    onChange={(e) => setTransferForm({...transferForm, from_location_id: e.target.value})}
+                                    required
+                                >
+                                    <option value="">Select a location</option>
+                                    {locations.map(location => (
+                                        <option key={location.location_id} value={location.location_id}>
+                                            {location.name} (ID: {location.location_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>To Location:</label>
+                                <select
+                                    value={transferForm.to_location_id}
+                                    onChange={(e) => setTransferForm({...transferForm, to_location_id: e.target.value})}
+                                    required
+                                >
+                                    <option value="">Select a location</option>
+                                    {locations.map(location => (
+                                        <option key={location.location_id} value={location.location_id}>
+                                            {location.name} (ID: {location.location_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Variant:</label>
+                                <select
+                                    value={transferForm.variant_id}
+                                    onChange={(e) => setTransferForm({...transferForm, variant_id: e.target.value})}
+                                    required
+                                >
+                                    <option value="">Select a variant</option>
+                                    {variants.map(variant => (
+                                        <option key={variant.variant_id} value={variant.variant_id}>
+                                            {variant.product_name} - {variant.variant_name} (ID: {variant.variant_id})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Quantity:</label>
+                                <input
+                                    type="number"
+                                    value={transferForm.quantity}
+                                    onChange={(e) => setTransferForm({...transferForm, quantity: parseInt(e.target.value) || 1})}
+                                    min="1"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Notes:</label>
+                                <textarea
+                                    value={transferForm.notes}
+                                    onChange={(e) => setTransferForm({...transferForm, notes: e.target.value})}
+                                    rows="3"
+                                />
+                            </div>
+                            <div className="form-actions">
+                                <button type="submit" className="btn btn-primary">Transfer Items</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowTransferForm(false)}>
                                     Cancel
                                 </button>
                             </div>

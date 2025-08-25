@@ -11,7 +11,7 @@ const db = dbSingleton.getConnection();
 // =====================================================
 
 // Get all locations
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const [locations] = await db.execute(`
             SELECT * FROM locations 
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get location by ID
-router.get('/:locationId', async (req, res) => {
+router.get('/:locationId', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { locationId } = req.params;
         

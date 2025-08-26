@@ -24,9 +24,13 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [cartMsg, setCartMsg] = useState('');
+  
+  // New hierarchical variant system states
+  const [productAttributes, setProductAttributes] = useState([]);
+  const [selectedAttributes, setSelectedAttributes] = useState({});
+  const [availableVariants, setAvailableVariants] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
+  const [loadingAttributes, setLoadingAttributes] = useState(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -36,20 +40,8 @@ export default function ProductDetails() {
         const data = await res.json();
         setProduct(data);
         
-        // If product has variants, select the first one by default
-        if (data.variants && data.variants.length > 0) {
-          setSelectedVariant(data.variants[0]);
-          // Extract size and color from variant name if possible
-          const variantName = data.variants[0].variant_name;
-          if (variantName.includes('Size')) {
-            const sizeMatch = variantName.match(/Size\s+(\w+)/);
-            if (sizeMatch) setSelectedSize(sizeMatch[1]);
-          }
-          if (variantName.includes('Blue')) setSelectedColor('Blue');
-          if (variantName.includes('Black')) setSelectedColor('Black');
-          if (variantName.includes('White')) setSelectedColor('White');
-          if (variantName.includes('Red')) setSelectedColor('Red');
-        }
+        // Fetch product attributes for hierarchical variant system
+        await fetchProductAttributes(data.product_id);
       } catch (err) {
         setProduct(null);
       } finally {
@@ -59,18 +51,106 @@ export default function ProductDetails() {
     fetchProduct();
   }, [id]);
 
-  const handleVariantSelect = (variant) => {
-    setSelectedVariant(variant);
-    // Extract size and color from variant name
-    const variantName = variant.variant_name;
-    if (variantName.includes('Size')) {
-      const sizeMatch = variantName.match(/Size\s+(\w+)/);
-      if (sizeMatch) setSelectedSize(sizeMatch[1]);
+  const fetchProductAttributes = async (productId) => {
+    setLoadingAttributes(true);
+    try {
+      const res = await fetch(`/api/product-attributes/products/${productId}/attributes`);
+      const attributes = await res.json();
+      setProductAttributes(attributes);
+      
+      // Set default selections for first attribute
+      if (attributes.length > 0 && attributes[0].values.length > 0) {
+        const firstAttr = attributes[0];
+        setSelectedAttributes(prev => ({
+          ...prev,
+          [firstAttr.slug]: firstAttr.values[0].slug
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching product attributes:', err);
+    } finally {
+      setLoadingAttributes(false);
     }
-    if (variantName.includes('Blue')) setSelectedColor('Blue');
-    if (variantName.includes('Black')) setSelectedColor('Black');
-    if (variantName.includes('White')) setSelectedColor('White');
-    if (variantName.includes('Red')) setSelectedColor('Red');
+  };
+
+  const fetchAvailableVariants = async (attributes) => {
+    try {
+      const res = await fetch(`/api/product-attributes/products/${id}/filter-variants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ selectedAttributes: attributes })
+      });
+      const variants = await res.json();
+      setAvailableVariants(variants);
+      
+      // Auto-select first available variant
+      if (variants.length > 0) {
+        setSelectedVariant(variants[0]);
+      } else {
+        setSelectedVariant(null);
+      }
+    } catch (err) {
+      console.error('Error fetching available variants:', err);
+      setAvailableVariants([]);
+      setSelectedVariant(null);
+    }
+  };
+
+  // Handle attribute selection
+  const handleAttributeSelect = (attributeSlug, valueSlug) => {
+    const newSelectedAttributes = {
+      ...selectedAttributes,
+      [attributeSlug]: valueSlug
+    };
+    
+    setSelectedAttributes(newSelectedAttributes);
+    
+    // Fetch available variants for the new selection
+    fetchAvailableVariants(newSelectedAttributes);
+  };
+
+  // Check if all required attributes are selected
+  const areAllAttributesSelected = () => {
+    if (!productAttributes || !Array.isArray(productAttributes)) {
+      return false;
+    }
+    return productAttributes.every(attr => 
+      !attr.is_required || selectedAttributes[attr.slug]
+    );
+  };
+
+  // Get current price (variant price or product price)
+  const getCurrentPrice = () => {
+    if (selectedVariant && selectedVariant.variant_price) {
+      return selectedVariant.variant_price;
+    }
+    return product?.price || 0;
+  };
+
+  // Get current stock status
+  const getCurrentStockStatus = () => {
+    if (selectedVariant && selectedVariant.available_stock !== undefined) {
+      return selectedVariant.available_stock > 0 
+        ? `In Stock (${selectedVariant.available_stock} available)`
+        : 'Out of Stock';
+    }
+    // Use derived total stock from variants instead of product.stock
+    const totalStock = product.totalStock || 0;
+    return totalStock > 0 
+      ? `In Stock (${totalStock} available)`
+      : 'Out of Stock';
+  };
+
+  // Check if current selection is out of stock
+  const isCurrentSelectionOutOfStock = () => {
+    if (selectedVariant && selectedVariant.available_stock !== undefined) {
+      return selectedVariant.available_stock <= 0;
+    }
+    // Use derived total stock from variants instead of product.stock
+    const totalStock = product.totalStock || 0;
+    return totalStock <= 0;
   };
 
   const handleAddToCart = () => {
@@ -81,37 +161,59 @@ export default function ProductDetails() {
       return;
     }
     
-    // If product has variants, require variant selection
-    if (product.hasVariants && !selectedVariant) {
-      setCartMsg('Please select a variant before adding to cart.');
-      return;
+    // Check if we have a hierarchical variant system
+    if (productAttributes && productAttributes.length > 0) {
+      if (!areAllAttributesSelected()) {
+        setCartMsg('Please select all required attributes before adding to cart.');
+        return;
+      }
+      
+      if (!selectedVariant) {
+        setCartMsg('No variant available for the selected attributes.');
+        return;
+      }
+      
+      if (selectedVariant.available_stock <= 0) {
+        setCartMsg('This variant is out of stock.');
+        return;
+      }
+      
+      // Add variant to cart
+      const itemToAdd = {
+        ...product,
+        selectedVariant: selectedVariant,
+        selectedAttributes: selectedAttributes,
+        variantPrice: selectedVariant.variant_price,
+        hasVariants: true
+      };
+      
+      addToCart(itemToAdd, quantity);
+      setCartMsg('Added to cart!');
+    } else {
+      // Fallback to old system for products without attributes
+      if (product.hasVariants && !selectedVariant) {
+        setCartMsg('Please select a variant before adding to cart.');
+        return;
+      }
+      
+      const itemToAdd = {
+        ...product,
+        selectedVariant: selectedVariant,
+        variantPrice: selectedVariant ? selectedVariant.variant_price : product.price
+      };
+      
+      addToCart(itemToAdd, quantity);
+      setCartMsg('Added to cart!');
     }
-    
-    // Add to cart with variant information
-    const itemToAdd = {
-      ...product,
-      selectedVariant: selectedVariant,
-      selectedSize: selectedSize,
-      selectedColor: selectedColor,
-      variantPrice: selectedVariant ? selectedVariant.variant_price : product.price
-    };
-    
-    addToCart(itemToAdd, quantity);
-    setCartMsg('Added to cart!');
   };
 
   if (loading) return <div className="loading-container">Loading...</div>;
   if (!product) return <div className="error-container">Product not found.</div>;
 
-  // Enhanced inventory validation
-  const hasValidStock = product.stock && product.stock >= 0;
-  const isOutOfStock = !hasValidStock || product.stock === 0;
-  const stockStatus = !hasValidStock ? 'Invalid Stock Data' : product.stock === 0 ? 'Out of Stock' : `In Stock (${product.stock} available)`;
-  const stockColor = !hasValidStock ? '#ff6b35' : product.stock === 0 ? '#dc3545' : '#28a745';
-
-  // Get current price (variant price or product price)
-  const currentPrice = selectedVariant ? selectedVariant.variant_price : product.price;
-  const hasVariants = product.variants && product.variants.length > 0;
+  const hasHierarchicalVariants = productAttributes && productAttributes.length > 0;
+  const currentPrice = getCurrentPrice();
+  const currentStockStatus = getCurrentStockStatus();
+  const isOutOfStock = isCurrentSelectionOutOfStock();
 
   return (
     <div className="product-details-container">
@@ -145,8 +247,12 @@ export default function ProductDetails() {
               alt={product.name}
               className="product-main-image"
               onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
+                if (e && e.target && e.target.style) {
+                  e.target.style.display = 'none';
+                  if (e.target.nextSibling && e.target.nextSibling.style) {
+                    e.target.nextSibling.style.display = 'flex';
+                  }
+                }
               }}
             />
           ) : null}
@@ -160,8 +266,72 @@ export default function ProductDetails() {
         <div className="product-info">
           <h1 className="product-title">{product.name}</h1>
           
-          {/* Variant Selection */}
-          {hasVariants && (
+          {/* Hierarchical Variant Selection */}
+          {hasHierarchicalVariants && (
+            <div className="hierarchical-variant-selection">
+              <h3>Select Your Options:</h3>
+              
+              {productAttributes.map((attribute, index) => (
+                <div key={attribute.attribute_id} className="attribute-selector">
+                  <label className="attribute-label">
+                    {attribute.name}:
+                    {attribute.is_required && <span className="required"> *</span>}
+                  </label>
+                  
+                  <div className="attribute-values">
+                    {attribute.values.map((value) => (
+                      <button
+                        key={value.value_id}
+                        className={`attribute-value-btn ${
+                          selectedAttributes[attribute.slug] === value.slug ? 'selected' : ''
+                        }`}
+                        onClick={() => handleAttributeSelect(attribute.slug, value.slug)}
+                        disabled={loadingAttributes}
+                      >
+                        {value.value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Available Variants Display */}
+              {areAllAttributesSelected() && availableVariants.length > 0 && (
+                <div className="available-variants">
+                  <h4>Available Options:</h4>
+                  <div className="variants-list">
+                    {availableVariants.map((variant) => (
+                      <div
+                        key={variant.variant_id}
+                        className={`variant-option ${
+                          selectedVariant?.variant_id === variant.variant_id ? 'selected' : ''
+                        }`}
+                        onClick={() => setSelectedVariant(variant)}
+                      >
+                        <div className="variant-name">{variant.variant_name}</div>
+                        <div className="variant-price">{formatPrice(variant.variant_price, currency)}</div>
+                        <div className="variant-stock">
+                          {variant.available_stock > 0 
+                            ? `${variant.available_stock} available` 
+                            : 'Out of stock'
+                          }
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {areAllAttributesSelected() && availableVariants.length === 0 && (
+                <div className="no-variants-available">
+                  <p>No variants available for the selected combination.</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Fallback to old variant system */}
+          {!hasHierarchicalVariants && product.variants && product.variants.length > 0 && (
             <div className="variant-selection">
               <h3>Select Variant:</h3>
               <div className="variants-grid">
@@ -169,7 +339,7 @@ export default function ProductDetails() {
                   <div
                     key={variant.variant_id}
                     className={`variant-option ${selectedVariant?.variant_id === variant.variant_id ? 'selected' : ''}`}
-                    onClick={() => handleVariantSelect(variant)}
+                    onClick={() => setSelectedVariant(variant)}
                   >
                     <div className="variant-name">{variant.variant_name}</div>
                     <div className="variant-price">{formatPrice(variant.variant_price, currency)}</div>
@@ -182,41 +352,22 @@ export default function ProductDetails() {
             </div>
           )}
           
-          {/* Size and Color Selection (if not handled by variants) */}
-          {!hasVariants && product.size && (
-            <div className="product-attribute">
-              <label>Size:</label>
-              <span className="attribute-value">{product.size}</span>
-            </div>
-          )}
-          
-          {!hasVariants && product.color && (
-            <div className="product-attribute">
-              <label>Color:</label>
-              <span className="attribute-value">{product.color}</span>
-            </div>
-          )}
-          
           {/* Price Display */}
           <div className="product-price">
             <span className="price-label">Price:</span>
             <span className="price-value">
-              {hasVariants && selectedVariant 
-                ? formatPrice(selectedVariant.variant_price, currency)
-                : formatPrice(product.price, currency)
-              }
+              {formatPrice(currentPrice, currency)}
             </span>
-            {hasVariants && selectedVariant && selectedVariant.variant_price !== product.price && (
+            {selectedVariant && selectedVariant.variant_price !== product.price && (
               <span className="original-price">{formatPrice(product.price, currency)}</span>
             )}
           </div>
           
           {/* Stock Status */}
-          <div className="stock-status" style={{ color: stockColor }}>
-            {hasVariants && selectedVariant 
-              ? `Stock: ${selectedVariant.available_stock > 0 ? `${selectedVariant.available_stock} available` : 'Out of stock'}`
-              : stockStatus
-            }
+          <div className="stock-status" style={{ 
+            color: isOutOfStock ? '#dc3545' : '#28a745' 
+          }}>
+            {currentStockStatus}
           </div>
           
           {/* Description */}
@@ -264,7 +415,7 @@ export default function ProductDetails() {
                   id="quantity"
                   value={quantity}
                   onChange={(e) => setQuantity(parseInt(e.target.value))}
-                  disabled={hasVariants ? (selectedVariant?.available_stock === 0) : isOutOfStock}
+                  disabled={isOutOfStock}
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                     <option key={num} value={num}>{num}</option>
@@ -275,11 +426,13 @@ export default function ProductDetails() {
               <button
                 onClick={handleAddToCart}
                 className="add-to-cart-button"
-                disabled={hasVariants ? (selectedVariant?.available_stock === 0) : isOutOfStock}
+                disabled={isOutOfStock || (hasHierarchicalVariants && !areAllAttributesSelected())}
               >
-                {hasVariants && selectedVariant?.available_stock === 0 
+                {isOutOfStock 
                   ? 'Out of Stock' 
-                  : 'Add to Cart'
+                  : hasHierarchicalVariants && !areAllAttributesSelected()
+                    ? 'Select Options'
+                    : 'Add to Cart'
                 }
               </button>
               

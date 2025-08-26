@@ -280,9 +280,10 @@ const ProductsPage = () => {
           <div className="product-grid">
             {filteredProducts.map(product => {
               // Enhanced inventory validation
-              const hasValidStock = product.stock && product.stock >= 0;
-              const isOutOfStock = !hasValidStock || product.stock === 0;
-              const stockStatus = !hasValidStock ? 'Invalid Stock' : product.stock === 0 ? 'Out of Stock' : `Stock: ${product.stock}`;
+                      // Use derived totalStock from variants instead of product.stock
+        const hasValidStock = product.totalStock !== undefined && product.totalStock >= 0;
+        const isOutOfStock = !hasValidStock || product.totalStock === 0;
+        const stockStatus = !hasValidStock ? 'Invalid Stock' : product.totalStock === 0 ? 'Out of Stock' : `Stock: ${product.totalStock}`;
               
               return (
                 <div key={product.product_id} className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`}>
@@ -340,7 +341,7 @@ const ProductsPage = () => {
                       </div>
                     )}
                     
-                    {hasValidStock && product.stock > 0 && (
+                    {hasValidStock && product.totalStock > 0 && (
                       <p className="stock-info" style={{ fontSize: '0.8em', color: '#666', marginBottom: '10px' }}>
                         {stockStatus}
                       </p>
@@ -362,7 +363,7 @@ const ProductsPage = () => {
                           }
                         }}
                         disabled={isOutOfStock}
-                        title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : product.hasVariants ? 'Select variants on product page' : 'Add to cart'}
+                        title={!hasValidStock ? 'Invalid stock data' : product.totalStock === 0 ? 'Out of stock' : product.hasVariants ? 'Select variants on product page' : 'Add to cart'}
                       >
                         <BsCart />
                       </button>

@@ -32,7 +32,7 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Load routes AFTER environment variables are set
-let authRoutes, productRoutes, userRoutes, promotionRoutes, orderRoutes, adminRoutes, supplierRoutes, categoryRoutes, settingsRoutes, contactRoutes, variantsRoutes, inventoryRoutes, locationsRoutes;
+let authRoutes, productRoutes, userRoutes, promotionRoutes, orderRoutes, adminRoutes, supplierRoutes, categoryRoutes, settingsRoutes, contactRoutes, variantsRoutes, inventoryRoutes, locationsRoutes, productAttributesRoutes;
 try {
     authRoutes = require('./src/routes/auth.js');
     productRoutes = require('./src/routes/products.js');
@@ -47,6 +47,7 @@ try {
     variantsRoutes = require('./src/routes/variants.js');
     inventoryRoutes = require('./src/routes/inventory.js');
     locationsRoutes = require('./src/routes/locations.js');
+    productAttributesRoutes = require('./src/routes/productAttributes.js');
 } catch (error) {
     console.error('--- A FATAL ERROR OCCURRED DURING SERVER STARTUP ---');
     console.error('This is likely an incorrect file path in one of the `require` statements.');
@@ -70,6 +71,9 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/variants', variantsRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/locations', locationsRoutes);
+
+// Product Attributes Routes (Hierarchical Variant System)
+app.use('/api/product-attributes', productAttributesRoutes);
 
 // General API health check
 app.get('/api/health', (req, res) => {

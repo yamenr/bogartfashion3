@@ -23,20 +23,33 @@ const upload = multer({ storage: storage });
 // Get all products (public) - only active products with variants
 router.get('/', async (req, res) => {
     try {
-        // First get all active products
-        const [products] = await db.query('SELECT * FROM products WHERE stock > 0 ORDER BY name');
+        // Get all active products (removed stock filter since stock is derived from variants)
+        const [products] = await db.query('SELECT * FROM products ORDER BY name');
         
-        // For each product, fetch its variants
+        // For each product, fetch its variants and calculate total stock
         const productsWithVariants = await Promise.all(products.map(async (product) => {
             const [variants] = await db.query(
                 'SELECT variant_id, variant_name, variant_sku, variant_price FROM product_variants WHERE product_id = ? AND is_active = 1',
                 [product.product_id]
             );
             
+            // Calculate total stock from inventory items for this product
+            let totalStock = 0;
+            if (variants.length > 0) {
+                const variantIds = variants.map(v => v.variant_id);
+                const [stockResult] = await db.query(`
+                    SELECT COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as total_stock
+                    FROM inventory_items 
+                    WHERE variant_id IN (${variantIds.map(() => '?').join(',')})
+                `, variantIds);
+                totalStock = stockResult[0]?.total_stock || 0;
+            }
+            
             return {
                 ...product,
                 variants: variants,
-                hasVariants: variants.length > 0
+                hasVariants: variants.length > 0,
+                totalStock: totalStock
             };
         }));
         
@@ -51,7 +64,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [products] = await db.query('SELECT * FROM products WHERE product_id = ? AND stock > 0', [id]);
+        const [products] = await db.query('SELECT * FROM products WHERE product_id = ?', [id]);
         if (products.length === 0) {
             return res.status(404).json({ message: 'Product not found' });
         }
@@ -80,10 +93,14 @@ router.get('/:id', async (req, res) => {
             GROUP BY v.variant_id, v.variant_name, v.variant_sku, v.variant_price
         `, [id]);
         
+        // Calculate total available stock for the product
+        const totalAvailableStock = inventorySummary.reduce((sum, variant) => sum + variant.available_stock, 0);
+        
         const productWithVariants = {
             ...product,
             variants: inventorySummary,
-            hasVariants: inventorySummary.length > 0
+            hasVariants: inventorySummary.length > 0,
+            totalStock: totalAvailableStock
         };
         
         res.json(productWithVariants);

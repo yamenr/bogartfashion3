@@ -24,6 +24,9 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [cartMsg, setCartMsg] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
 
   useEffect(() => {
     async function fetchProduct() {
@@ -32,6 +35,21 @@ export default function ProductDetails() {
         const res = await fetch(`/api/products/${id}`);
         const data = await res.json();
         setProduct(data);
+        
+        // If product has variants, select the first one by default
+        if (data.variants && data.variants.length > 0) {
+          setSelectedVariant(data.variants[0]);
+          // Extract size and color from variant name if possible
+          const variantName = data.variants[0].variant_name;
+          if (variantName.includes('Size')) {
+            const sizeMatch = variantName.match(/Size\s+(\w+)/);
+            if (sizeMatch) setSelectedSize(sizeMatch[1]);
+          }
+          if (variantName.includes('Blue')) setSelectedColor('Blue');
+          if (variantName.includes('Black')) setSelectedColor('Black');
+          if (variantName.includes('White')) setSelectedColor('White');
+          if (variantName.includes('Red')) setSelectedColor('Red');
+        }
       } catch (err) {
         setProduct(null);
       } finally {
@@ -41,6 +59,20 @@ export default function ProductDetails() {
     fetchProduct();
   }, [id]);
 
+  const handleVariantSelect = (variant) => {
+    setSelectedVariant(variant);
+    // Extract size and color from variant name
+    const variantName = variant.variant_name;
+    if (variantName.includes('Size')) {
+      const sizeMatch = variantName.match(/Size\s+(\w+)/);
+      if (sizeMatch) setSelectedSize(sizeMatch[1]);
+    }
+    if (variantName.includes('Blue')) setSelectedColor('Blue');
+    if (variantName.includes('Black')) setSelectedColor('Black');
+    if (variantName.includes('White')) setSelectedColor('White');
+    if (variantName.includes('Red')) setSelectedColor('Red');
+  };
+
   const handleAddToCart = () => {
     setCartMsg('');
     if (!user_id) {
@@ -48,7 +80,23 @@ export default function ProductDetails() {
       setTimeout(() => navigate('/login'), 1200);
       return;
     }
-    addToCart(product, quantity);
+    
+    // If product has variants, require variant selection
+    if (product.hasVariants && !selectedVariant) {
+      setCartMsg('Please select a variant before adding to cart.');
+      return;
+    }
+    
+    // Add to cart with variant information
+    const itemToAdd = {
+      ...product,
+      selectedVariant: selectedVariant,
+      selectedSize: selectedSize,
+      selectedColor: selectedColor,
+      variantPrice: selectedVariant ? selectedVariant.variant_price : product.price
+    };
+    
+    addToCart(itemToAdd, quantity);
     setCartMsg('Added to cart!');
   };
 
@@ -60,6 +108,10 @@ export default function ProductDetails() {
   const isOutOfStock = !hasValidStock || product.stock === 0;
   const stockStatus = !hasValidStock ? 'Invalid Stock Data' : product.stock === 0 ? 'Out of Stock' : `In Stock (${product.stock} available)`;
   const stockColor = !hasValidStock ? '#ff6b35' : product.stock === 0 ? '#dc3545' : '#28a745';
+
+  // Get current price (variant price or product price)
+  const currentPrice = selectedVariant ? selectedVariant.variant_price : product.price;
+  const hasVariants = product.variants && product.variants.length > 0;
 
   return (
     <div className="product-details-container">
@@ -98,103 +150,144 @@ export default function ProductDetails() {
               }}
             />
           ) : null}
-          <div 
-            className="product-placeholder"
-            style={{ 
-              display: product.image ? 'none' : 'flex' 
-            }}
-          >
-            👜
-          </div>
+          {!product.image && (
+            <div className="no-image-placeholder">
+              <span>No Image Available</span>
+            </div>
+          )}
         </div>
         
-        <div className="product-info-container">
+        <div className="product-info">
           <h1 className="product-title">{product.name}</h1>
-          <div className="product-price">{formatPrice(product.price, currency)}</div>
-          <p className="product-description">{product.description}</p>
           
-          {/* Essential Product Details */}
-          <div className="product-details-box">
-            <h3 className="product-details-title">Product Details</h3>
-            <div className="product-details-grid">
-              {product.brand && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Brand:</span>
-                  <span className="product-detail-value">{product.brand}</span>
-                </div>
-              )}
-              {product.size && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Size:</span>
-                  <span className="product-detail-value">{product.size}</span>
-                </div>
-              )}
-              {product.color && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Color:</span>
-                  <span className="product-detail-value">{product.color}</span>
-                </div>
-              )}
-              {product.stock && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Quantity:</span>
-                  <span className="product-detail-value">{product.stock} available</span>
-                </div>
-              )}
-              {product.supplier_id && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Supplier:</span>
-                  <span className="product-detail-value">Supplier #{product.supplier_id}</span>
-                </div>
-              )}
-              {product.gender && (
-                <div className="product-detail-item">
-                  <span className="product-detail-label">Gender:</span>
-                  <span className="product-detail-value">{product.gender}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="product-stock-status">
-            <span className="stock-text" style={{ color: stockColor }}>
-              {stockStatus}
-            </span>
-          </div>
-          
-          {hasValidStock && product.stock > 0 && (
-            <div className="quantity-selector">
-              <span className="quantity-label">Quantity:</span>
-              <div className="quantity-controls">
-                <button 
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))} 
-                  className="quantity-button"
-                >
-                  -
-                </button>
-                <span className="quantity-display">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} 
-                  className="quantity-button"
-                >
-                  +
-                </button>
+          {/* Variant Selection */}
+          {hasVariants && (
+            <div className="variant-selection">
+              <h3>Select Variant:</h3>
+              <div className="variants-grid">
+                {product.variants.map((variant) => (
+                  <div
+                    key={variant.variant_id}
+                    className={`variant-option ${selectedVariant?.variant_id === variant.variant_id ? 'selected' : ''}`}
+                    onClick={() => handleVariantSelect(variant)}
+                  >
+                    <div className="variant-name">{variant.variant_name}</div>
+                    <div className="variant-price">{formatPrice(variant.variant_price, currency)}</div>
+                    <div className="variant-stock">
+                      Stock: {variant.available_stock > 0 ? `${variant.available_stock} available` : 'Out of stock'}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
           
-          <button
-            className="add-to-cart-button"
-            disabled={isOutOfStock}
-            onClick={handleAddToCart}
-            title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : 'Add to cart'}
-          >
-            {!hasValidStock ? 'Invalid Stock' : product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-          </button>
+          {/* Size and Color Selection (if not handled by variants) */}
+          {!hasVariants && product.size && (
+            <div className="product-attribute">
+              <label>Size:</label>
+              <span className="attribute-value">{product.size}</span>
+            </div>
+          )}
           
-          {cartMsg && (
-            <div className={`cart-message ${cartMsg.includes('Added') ? 'success' : 'error'}`}>
-              {cartMsg}
+          {!hasVariants && product.color && (
+            <div className="product-attribute">
+              <label>Color:</label>
+              <span className="attribute-value">{product.color}</span>
+            </div>
+          )}
+          
+          {/* Price Display */}
+          <div className="product-price">
+            <span className="price-label">Price:</span>
+            <span className="price-value">
+              {hasVariants && selectedVariant 
+                ? formatPrice(selectedVariant.variant_price, currency)
+                : formatPrice(product.price, currency)
+              }
+            </span>
+            {hasVariants && selectedVariant && selectedVariant.variant_price !== product.price && (
+              <span className="original-price">{formatPrice(product.price, currency)}</span>
+            )}
+          </div>
+          
+          {/* Stock Status */}
+          <div className="stock-status" style={{ color: stockColor }}>
+            {hasVariants && selectedVariant 
+              ? `Stock: ${selectedVariant.available_stock > 0 ? `${selectedVariant.available_stock} available` : 'Out of stock'}`
+              : stockStatus
+            }
+          </div>
+          
+          {/* Description */}
+          {product.description && (
+            <div className="product-description">
+              <h3>Description:</h3>
+              <p>{product.description}</p>
+            </div>
+          )}
+          
+          {/* Additional Details */}
+          <div className="product-details-grid">
+            {product.brand && (
+              <div className="detail-item">
+                <label>Brand:</label>
+                <span>{product.brand}</span>
+              </div>
+            )}
+            {product.material && (
+              <div className="detail-item">
+                <label>Material:</label>
+                <span>{product.material}</span>
+              </div>
+            )}
+            {product.gender && (
+              <div className="detail-item">
+                <label>Gender:</label>
+                <span>{product.gender}</span>
+              </div>
+            )}
+            {product.season && (
+              <div className="detail-item">
+                <label>Season:</label>
+                <span>{product.season}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Add to Cart Section */}
+          {!isUserAdmin && (
+            <div className="add-to-cart-section">
+              <div className="quantity-selector">
+                <label htmlFor="quantity">Quantity:</label>
+                <select
+                  id="quantity"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value))}
+                  disabled={hasVariants ? (selectedVariant?.available_stock === 0) : isOutOfStock}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <button
+                onClick={handleAddToCart}
+                className="add-to-cart-button"
+                disabled={hasVariants ? (selectedVariant?.available_stock === 0) : isOutOfStock}
+              >
+                {hasVariants && selectedVariant?.available_stock === 0 
+                  ? 'Out of Stock' 
+                  : 'Add to Cart'
+                }
+              </button>
+              
+              {cartMsg && (
+                <div className="cart-message" style={{ color: cartMsg.includes('error') ? '#dc3545' : '#28a745' }}>
+                  {cartMsg}
+                </div>
+              )}
             </div>
           )}
         </div>

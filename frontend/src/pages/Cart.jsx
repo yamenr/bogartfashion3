@@ -82,6 +82,18 @@ const Cart = () => {
               </div>
               <div className="cart-item-details">
                 <h3>{item.name}</h3>
+                {/* Display variant information if available */}
+                {item.variantInfo && (
+                  <div className="cart-item-variant">
+                    <span className="variant-name">{item.variantInfo.variant_name}</span>
+                    {item.variantInfo.selectedSize && (
+                      <span className="variant-size">Size: {item.variantInfo.selectedSize}</span>
+                    )}
+                    {item.variantInfo.selectedColor && (
+                      <span className="variant-color">Color: {item.variantInfo.selectedColor}</span>
+                    )}
+                  </div>
+                )}
                 <p className="cart-item-price">{formatPrice(item.price, currency)}</p>
                 <div className="cart-item-quantity">
                   <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} disabled={item.quantity <= 1}>-</button>

@@ -314,6 +314,48 @@
   display: none; /* Hidden by default, shown on mobile */
 }
 
+/* Variant Information Styles */
+.product-variants-info {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.variants-badge {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #C2883A;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.variants-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.variant-preview {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: white;
+  border: 1px solid #C2883A;
+  border-radius: 12px;
+  color: #C2883A;
+  font-weight: 500;
+}
+
+.more-variants {
+  font-size: 10px;
+  color: #666;
+  font-style: italic;
+  align-self: center;
+}
+
 /* --- Responsive Styles for Mobile --- */
 @media (max-width: 768px) {
   .products-page-layout {

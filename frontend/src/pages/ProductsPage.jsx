@@ -317,18 +317,52 @@ const ProductsPage = () => {
                     <p className="product-price">
                       {formatPriceWithCommas(product.price, currency)}
                     </p>
+                    
+                    {/* Show variant information if available */}
+                    {product.hasVariants && product.variants && product.variants.length > 0 && (
+                      <div className="product-variants-info">
+                        <span className="variants-badge">
+                          {product.variants.length} Variant{product.variants.length !== 1 ? 's' : ''} Available
+                        </span>
+                        <div className="variants-preview">
+                          {product.variants.slice(0, 3).map((variant, index) => (
+                            <span key={variant.variant_id} className="variant-preview">
+                              {variant.variant_name.includes('Size') ? 
+                                variant.variant_name.match(/Size\s+(\w+)/)?.[1] || variant.variant_name :
+                                variant.variant_name
+                              }
+                            </span>
+                          ))}
+                          {product.variants.length > 3 && (
+                            <span className="more-variants">+{product.variants.length - 3} more</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
                     {hasValidStock && product.stock > 0 && (
                       <p className="stock-info" style={{ fontSize: '0.8em', color: '#666', marginBottom: '10px' }}>
                         {stockStatus}
                       </p>
                     )}
+                    
                     <div className="product-card-actions">
                       <button className="details-button" onClick={() => navigate(`/products/${product.product_id}`)}>For details</button>
                       <button 
                         className={`add-to-cart-button ${isOutOfStock ? 'disabled' : ''}`} 
-                        onClick={() => !isOutOfStock && addToCart(product)}
+                        onClick={() => {
+                          if (!isOutOfStock) {
+                            if (product.hasVariants) {
+                              // If product has variants, redirect to product details page
+                              navigate(`/products/${product.product_id}`);
+                            } else {
+                              // If no variants, add directly to cart
+                              addToCart(product);
+                            }
+                          }
+                        }}
                         disabled={isOutOfStock}
-                        title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : 'Add to cart'}
+                        title={!hasValidStock ? 'Invalid stock data' : product.stock === 0 ? 'Out of stock' : product.hasVariants ? 'Select variants on product page' : 'Add to cart'}
                       >
                         <BsCart />
                       </button>

@@ -78,16 +78,40 @@ export const CartProvider = ({ children }) => {
       }
     }
     
-    // Enhanced inventory validation
-    if (!product.stock || product.stock < 0) {
-      alert('This product has invalid inventory data and cannot be added to cart.');
+    // Handle variant-specific validation
+    if (product.hasVariants && product.selectedVariant) {
+      // Check variant stock
+      if (!product.selectedVariant.available_stock || product.selectedVariant.available_stock <= 0) {
+        alert('This variant is out of stock and cannot be added to cart.');
+        return;
+      }
+      
+      // Check if requested quantity exceeds variant stock
+      if (quantity > product.selectedVariant.available_stock) {
+        alert(`Only ${product.selectedVariant.available_stock} unit${product.selectedVariant.available_stock === 1 ? '' : 's'} available for this variant. Cannot add ${quantity} to cart.`);
+        return;
+      }
+    } else if (product.hasVariants && !product.selectedVariant) {
+      alert('Please select a variant before adding to cart.');
       return;
-    }
-    
-    // Check if product is out of stock
-    if (product.stock === 0) {
-      alert('This product is out of stock and cannot be added to cart.');
-      return;
+    } else {
+      // Regular product validation (no variants)
+      if (!product.stock || product.stock < 0) {
+        alert('This product has invalid inventory data and cannot be added to cart.');
+        return;
+      }
+      
+      // Check if product is out of stock
+      if (product.stock === 0) {
+        alert('This product is out of stock and cannot be added to cart.');
+        return;
+      }
+      
+      // Check if requested quantity exceeds available stock
+      if (quantity > product.stock) {
+        alert(`Only ${product.stock} unit${product.stock === 1 ? '' : 's'} available. Cannot add ${quantity} to cart.`);
+        return;
+      }
     }
     
     // Validate quantity parameter
@@ -96,25 +120,59 @@ export const CartProvider = ({ children }) => {
       return;
     }
     
-    // Check if requested quantity exceeds available stock
-    if (quantity > product.stock) {
-      alert(`Only ${product.stock} unit${product.stock === 1 ? '' : 's'} available. Cannot add ${quantity} to cart.`);
-      return;
-    }
-    
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product_id === product.product_id);
+      // Create a unique identifier for cart items (product + variant)
+      const itemKey = product.hasVariants && product.selectedVariant 
+        ? `${product.product_id}_${product.selectedVariant.variant_id}`
+        : product.product_id;
+      
+      const existingItem = prevItems.find((item) => {
+        if (product.hasVariants && product.selectedVariant) {
+          return item.product_id === product.product_id && 
+                 item.selectedVariant?.variant_id === product.selectedVariant.variant_id;
+        }
+        return item.product_id === product.product_id;
+      });
+      
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantity;
-        if (newQuantity > product.stock) {
-          alert(`Cannot add more than ${product.stock} unit${product.stock === 1 ? '' : 's'} of this product to cart. You already have ${existingItem.quantity} in your cart.`);
+        const maxStock = product.hasVariants && product.selectedVariant 
+          ? product.selectedVariant.available_stock 
+          : product.stock;
+          
+        if (newQuantity > maxStock) {
+          alert(`Cannot add more than ${maxStock} unit${maxStock === 1 ? '' : 's'} of this ${product.hasVariants ? 'variant' : 'product'} to cart. You already have ${existingItem.quantity} in your cart.`);
           return prevItems;
         }
-        return prevItems.map((item) =>
-          item.product_id === product.product_id ? { ...item, quantity: newQuantity } : item
-        );
+        
+        return prevItems.map((item) => {
+          if (item.product_id === product.product_id && 
+              (!product.hasVariants || item.selectedVariant?.variant_id === product.selectedVariant.variant_id)) {
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        });
       }
-      return [...prevItems, { ...product, quantity }];
+      
+      // Add new item with variant information
+      const newItem = {
+        ...product,
+        quantity,
+        // Use variant price if available, otherwise use product price
+        price: product.hasVariants && product.selectedVariant 
+          ? product.selectedVariant.variant_price 
+          : product.price,
+        // Store variant information for display
+        variantInfo: product.hasVariants && product.selectedVariant ? {
+          variant_id: product.selectedVariant.variant_id,
+          variant_name: product.selectedVariant.variant_name,
+          variant_sku: product.selectedVariant.variant_sku,
+          selectedSize: product.selectedSize,
+          selectedColor: product.selectedColor
+        } : null
+      };
+      
+      return [...prevItems, newItem];
     });
   };
 

@@ -20,18 +20,34 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Get all products (public) - only active products
+// Get all products (public) - only active products with variants
 router.get('/', async (req, res) => {
     try {
+        // First get all active products
         const [products] = await db.query('SELECT * FROM products WHERE stock > 0 ORDER BY name');
-        res.json(products);
+        
+        // For each product, fetch its variants
+        const productsWithVariants = await Promise.all(products.map(async (product) => {
+            const [variants] = await db.query(
+                'SELECT variant_id, variant_name, variant_sku, variant_price FROM product_variants WHERE product_id = ? AND is_active = 1',
+                [product.product_id]
+            );
+            
+            return {
+                ...product,
+                variants: variants,
+                hasVariants: variants.length > 0
+            };
+        }));
+        
+        res.json(productsWithVariants);
     } catch (err) {
         console.error('Error fetching products:', err);
         res.status(500).json({ message: 'Database error' });
     }
 });
 
-// Get a single product by ID (public) - only active products
+// Get a single product by ID (public) - only active products with variants
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -39,7 +55,38 @@ router.get('/:id', async (req, res) => {
         if (products.length === 0) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        res.json(products[0]);
+        
+        const product = products[0];
+        
+        // Fetch variants for this product
+        const [variants] = await db.query(
+            'SELECT variant_id, variant_name, variant_sku, variant_price FROM product_variants WHERE product_id = ? AND is_active = 1',
+            [id]
+        );
+        
+        // Fetch inventory summary for variants
+        const [inventorySummary] = await db.query(`
+            SELECT 
+                v.variant_id,
+                v.variant_name,
+                v.variant_sku,
+                v.variant_price,
+                COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as available_stock,
+                COALESCE(SUM(CASE WHEN ii.status = 'reserved' THEN 1 ELSE 0 END), 0) as reserved_stock,
+                COALESCE(SUM(CASE WHEN ii.status = 'sold' THEN 1 ELSE 0 END), 0) as sold_stock
+            FROM product_variants v
+            LEFT JOIN inventory_items ii ON v.variant_id = ii.variant_id
+            WHERE v.product_id = ? AND v.is_active = 1
+            GROUP BY v.variant_id, v.variant_name, v.variant_sku, v.variant_price
+        `, [id]);
+        
+        const productWithVariants = {
+            ...product,
+            variants: inventorySummary,
+            hasVariants: inventorySummary.length > 0
+        };
+        
+        res.json(productWithVariants);
     } catch (err) {
         console.error(`Error fetching product ${id}:`, err);
         res.status(500).json({ message: 'Database error' });

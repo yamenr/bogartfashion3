@@ -137,7 +137,7 @@ export default function ProductDetails() {
         : 'Out of Stock';
     }
     // Use derived total stock from variants instead of product.stock
-    const totalStock = product.totalStock || 0;
+    const totalStock = parseInt(product.totalStock) || 0;
     return totalStock > 0 
       ? `In Stock (${totalStock} available)`
       : 'Out of Stock';
@@ -149,7 +149,7 @@ export default function ProductDetails() {
       return selectedVariant.available_stock <= 0;
     }
     // Use derived total stock from variants instead of product.stock
-    const totalStock = product.totalStock || 0;
+    const totalStock = parseInt(product.totalStock) || 0;
     return totalStock <= 0;
   };
 

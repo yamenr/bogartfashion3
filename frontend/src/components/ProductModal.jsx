@@ -8,7 +8,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
     name: '', 
     description: '', 
     price: '', 
-    stock: '', 
     image: '', 
     supplier_id: '', 
     category_id: '',
@@ -34,7 +33,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
         name: product.name || '',
         description: product.description || '',
         price: product.price ? parseFloat(product.price).toFixed(2) : '',
-        stock: product.stock || '',
         image: product.image || '',
         supplier_id: product.supplier_id || '',
         category_id: product.category_id || '',
@@ -53,7 +51,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
         name: '', 
         description: '', 
         price: '', 
-        stock: '', 
         image: '', 
         supplier_id: '', 
         category_id: '',
@@ -98,8 +95,8 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
     e.preventDefault();
     setMessage('Submitting...');
 
-    if (!form.name || !form.price || !form.stock) {
-      setMessage('Name, price, and stock are required.');
+    if (!form.name || !form.price) {
+      setMessage('Name and price are required.');
       return;
     }
 
@@ -107,7 +104,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
     formData.append('name', form.name);
     formData.append('description', form.description);
     formData.append('price', form.price);
-    formData.append('stock', form.stock);
     formData.append('supplier_id', form.supplier_id || '');
     formData.append('category_id', form.category_id || '');
     formData.append('size', form.size);
@@ -175,16 +171,10 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
             <label>Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} />
           </div>
-          <div className="form-row">
-            <div className="form-group">
+                      <div className="form-group">
               <label>Price</label>
               <input type="number" name="price" value={form.price} onChange={handleChange} required step="0.01" />
             </div>
-            <div className="form-group">
-              <label>Stock</label>
-              <input type="number" name="stock" value={form.stock} onChange={handleChange} required />
-            </div>
-          </div>
           
           {/* Fashion-specific fields */}
           <div className="form-row">

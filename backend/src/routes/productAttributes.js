@@ -289,4 +289,41 @@ router.post('/products/:productId/attributes', authenticateToken, requireAdmin, 
     }
 });
 
+// Temporary endpoint to create product attribute options for testing (admin only)
+router.post('/setup-product-options', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { productId } = req.body;
+        
+        if (!productId) {
+            return res.status(400).json({ message: 'Product ID is required' });
+        }
+
+        // Clear existing options for this product
+        await db.query('DELETE FROM product_attribute_options WHERE product_id = ?', [productId]);
+
+        // Create product attribute options
+        // Color attribute (ID: 1) - display order 1
+        await db.query(
+            'INSERT INTO product_attribute_options (product_id, attribute_id, display_order, is_required) VALUES (?, ?, ?, ?)',
+            [productId, 1, 1, 1]
+        );
+
+        // Size attribute (ID: 2) - display order 2
+        await db.query(
+            'INSERT INTO product_attribute_options (product_id, attribute_id, display_order, is_required) VALUES (?, ?, ?, ?)',
+            [productId, 2, 2, 1]
+        );
+
+        res.json({
+            message: 'Product attribute options created successfully',
+            product_id: productId,
+            options_created: 2
+        });
+
+    } catch (err) {
+        console.error('Error setting up product attribute options:', err);
+        res.status(500).json({ message: 'Database error', error: err.message });
+    }
+});
+
 module.exports = router;

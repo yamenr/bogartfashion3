@@ -52,6 +52,9 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { name, type, address, city, country } = req.body;
         
+        // Debug logging
+        console.log('Creating location with data:', { name, type, address, city, country });
+        
         if (!name || !type) {
             return res.status(400).json({ 
                 message: 'Location name and type are required' 
@@ -71,10 +74,14 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
         }
         
         // Create new location
+        const insertParams = [name, type, address || null, city || null, country || null];
+        console.log('Insert parameters:', insertParams);
+        console.log('Parameter types:', insertParams.map(p => typeof p));
+        
         const [result] = await db.execute(`
             INSERT INTO locations (name, type, address, city, country)
             VALUES (?, ?, ?, ?, ?)
-        `, [name, type, address, city, country]);
+        `, insertParams);
         
         const locationId = result.insertId;
         
@@ -100,6 +107,9 @@ router.put('/:locationId', authenticateToken, requireAdmin, async (req, res) => 
     try {
         const { locationId } = req.params;
         const { name, type, address, city, country, is_active } = req.body;
+        
+        // Debug logging
+        console.log('Updating location with data:', { name, type, address, city, country, is_active });
         
         // Check if location exists
         const [existingLocation] = await db.execute(
@@ -130,7 +140,7 @@ router.put('/:locationId', authenticateToken, requireAdmin, async (req, res) => 
             UPDATE locations 
             SET name = ?, type = ?, address = ?, city = ?, country = ?, is_active = ?
             WHERE location_id = ?
-        `, [name, type, address, city, country, is_active, locationId]);
+        `, [name, type, address || null, city || null, country || null, is_active !== undefined ? is_active : 1, locationId]);
         
         // Get updated location
         const [updatedLocation] = await db.execute(

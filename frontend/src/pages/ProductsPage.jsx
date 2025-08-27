@@ -277,13 +277,15 @@ const ProductsPage = () => {
         <FilterSidebar />
         <div className="product-grid-container">
           <button className="mobile-filter-button" onClick={() => setFiltersOpen(true)}>Show Filters</button>
-          <div className="product-grid">
+          <div className={`product-grid ${filteredProducts.length === 1 ? 'single-product' : ''}`}>
             {filteredProducts.map(product => {
               // Enhanced inventory validation
-                      // Use derived totalStock from variants instead of product.stock
-        const hasValidStock = product.totalStock !== undefined && product.totalStock >= 0;
-        const isOutOfStock = !hasValidStock || product.totalStock === 0;
-        const stockStatus = !hasValidStock ? 'Invalid Stock' : product.totalStock === 0 ? 'Out of Stock' : `Stock: ${product.totalStock}`;
+              // Use derived totalStock from variants instead of product.stock
+              // Convert totalStock to number to handle both string and number types
+              const totalStockNum = parseInt(product.totalStock) || 0;
+              const hasValidStock = product.totalStock !== undefined && totalStockNum >= 0;
+              const isOutOfStock = !hasValidStock || totalStockNum === 0;
+              const stockStatus = !hasValidStock ? 'Invalid Stock' : totalStockNum === 0 ? 'Out of Stock' : `Stock: ${totalStockNum}`;
               
               return (
                 <div key={product.product_id} className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`}>
@@ -341,7 +343,7 @@ const ProductsPage = () => {
                       </div>
                     )}
                     
-                    {hasValidStock && product.totalStock > 0 && (
+                    {hasValidStock && totalStockNum > 0 && (
                       <p className="stock-info" style={{ fontSize: '0.8em', color: '#666', marginBottom: '10px' }}>
                         {stockStatus}
                       </p>
@@ -363,7 +365,7 @@ const ProductsPage = () => {
                           }
                         }}
                         disabled={isOutOfStock}
-                        title={!hasValidStock ? 'Invalid stock data' : product.totalStock === 0 ? 'Out of stock' : product.hasVariants ? 'Select variants on product page' : 'Add to cart'}
+                        title={!hasValidStock ? 'Invalid stock data' : totalStockNum === 0 ? 'Out of stock' : product.hasVariants ? 'Select variants on product page' : 'Add to cart'}
                       >
                         <BsCart />
                       </button>

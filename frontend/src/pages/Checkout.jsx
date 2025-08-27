@@ -45,6 +45,7 @@ const Checkout = () => {
             user_id,
             items: cartItems.map(item => ({
                 product_id: item.product_id,
+                variant_id: item.variantInfo?.variant_id || null,
                 quantity: item.quantity,
                 price: item.price,
             })),

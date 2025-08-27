@@ -18,7 +18,6 @@ import NotFound from './pages/NotFound';
 import ProductDetails from './pages/ProductDetails';
 import OrderHistory from './pages/OrderHistory';
 import OrderConfirmation from './pages/OrderConfirmation';
-import PayPalTest from './pages/PayPalTest';
 import AdminRouteGuard from './components/AdminRouteGuard';
 
 import Dashboard from './pages/manager/Dashboard';
@@ -93,11 +92,7 @@ function App({ isManagerRoute }) {
             <OrderConfirmation />
           </AdminRouteGuard>
         } />
-        <Route path="/paypal-test" element={
-          <AdminRouteGuard redirectTo="/manager/dashboard">
-            <PayPalTest />
-          </AdminRouteGuard>
-        } />
+
 
         {/* Manager Routes */}
         <Route path="/manager/dashboard" element={<Dashboard />} />

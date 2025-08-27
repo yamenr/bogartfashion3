@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const dbSingleton = require('../../dbSingleton.js');
 const { authenticateToken, requireAdmin } = require('../middleware/auth.js');
-const { isValidPrice, isValidStock } = require('../../utils/validation.js');
+const { isValidPrice } = require('../../utils/validation.js');
 const { analyzeProductSimilarity } = require('../../utils/productSimilarity.js');
 
 const router = express.Router();
@@ -20,10 +20,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Get all products (public) - only active products with variants
+// Get all products (public) - handles both variant and non-variant products
 router.get('/', async (req, res) => {
     try {
-        // Get all active products (removed stock filter since stock is derived from variants)
+        // Get all active products
         const [products] = await db.query('SELECT * FROM products ORDER BY name');
         
         // For each product, fetch its variants and calculate total stock
@@ -33,34 +33,45 @@ router.get('/', async (req, res) => {
                 [product.product_id]
             );
             
-            // Calculate total stock from inventory items for this product
             let totalStock = 0;
-            if (variants.length > 0) {
+            let hasVariants = variants.length > 0;
+            
+            if (hasVariants) {
+                // Product has variants - calculate stock from inventory items
                 const variantIds = variants.map(v => v.variant_id);
                 const [stockResult] = await db.query(`
-                    SELECT COALESCE(SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END), 0) as total_stock
-                    FROM inventory_items 
-                    WHERE variant_id IN (${variantIds.map(() => '?').join(',')})
+                    SELECT COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as total_stock
+                    FROM inventory_items ii
+                    WHERE ii.variant_id IN (${variantIds.map(() => '?').join(',')})
                 `, variantIds);
-                totalStock = stockResult[0]?.total_stock || 0;
+                totalStock = parseInt(stockResult[0]?.total_stock) || 0;
+                
+                // Only return products with actual stock
+                if (totalStock > 0) {
+                    return {
+                        ...product,
+                        variants: variants,
+                        hasVariants: hasVariants,
+                        totalStock: totalStock
+                    };
+                }
             }
             
-            return {
-                ...product,
-                variants: variants,
-                hasVariants: variants.length > 0,
-                totalStock: totalStock
-            };
+            // Skip products without variants or without stock
+            return null;
         }));
         
-        res.json(productsWithVariants);
+        // Filter out null values (products without inventory)
+        const availableProducts = productsWithVariants.filter(product => product !== null);
+        
+        res.json(availableProducts);
     } catch (err) {
         console.error('Error fetching products:', err);
         res.status(500).json({ message: 'Database error' });
     }
 });
 
-// Get a single product by ID (public) - only active products with variants
+// Get a single product by ID (public) - handles both variant and non-variant products
 router.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -77,33 +88,44 @@ router.get('/:id', async (req, res) => {
             [id]
         );
         
-        // Fetch inventory summary for variants
-        const [inventorySummary] = await db.query(`
-            SELECT 
-                v.variant_id,
-                v.variant_name,
-                v.variant_sku,
-                v.variant_price,
-                COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as available_stock,
-                COALESCE(SUM(CASE WHEN ii.status = 'reserved' THEN 1 ELSE 0 END), 0) as reserved_stock,
-                COALESCE(SUM(CASE WHEN ii.status = 'sold' THEN 1 ELSE 0 END), 0) as sold_stock
-            FROM product_variants v
-            LEFT JOIN inventory_items ii ON v.variant_id = ii.variant_id
-            WHERE v.product_id = ? AND v.is_active = 1
-            GROUP BY v.variant_id, v.variant_name, v.variant_sku, v.variant_price
-        `, [id]);
+        let totalStock = 0;
+        let hasVariants = variants.length > 0;
         
-        // Calculate total available stock for the product
-        const totalAvailableStock = inventorySummary.reduce((sum, variant) => sum + variant.available_stock, 0);
-        
-        const productWithVariants = {
-            ...product,
-            variants: inventorySummary,
-            hasVariants: inventorySummary.length > 0,
-            totalStock: totalAvailableStock
-        };
-        
-        res.json(productWithVariants);
+        if (hasVariants) {
+            // Product has variants - fetch inventory summary
+            const [inventorySummary] = await db.query(`
+                SELECT 
+                    v.variant_id,
+                    v.variant_name,
+                    v.variant_sku,
+                    v.variant_price,
+                    COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as available_stock,
+                    COALESCE(SUM(CASE WHEN ii.status = 'reserved' THEN 1 ELSE 0 END), 0) as reserved_stock,
+                    COALESCE(SUM(CASE WHEN ii.status = 'sold' THEN 1 ELSE 0 END), 0) as sold_stock
+                FROM product_variants v
+                LEFT JOIN inventory_items ii ON v.variant_id = ii.variant_id
+                WHERE v.product_id = ? AND v.is_active = 1
+                GROUP BY v.variant_id, v.variant_name, v.variant_sku, v.variant_price
+            `, [id]);
+            
+            // Calculate total available stock for the product
+            totalStock = inventorySummary.reduce((sum, variant) => {
+                const stock = parseInt(variant.available_stock) || 0;
+                return sum + stock;
+            }, 0);
+            
+            const productWithVariants = {
+                ...product,
+                variants: inventorySummary,
+                hasVariants: hasVariants,
+                totalStock: totalStock
+            };
+            
+            res.json(productWithVariants);
+        } else {
+            // Product has no variants - no inventory available
+            return res.status(404).json({ message: 'Product not available - no inventory' });
+        }
     } catch (err) {
         console.error(`Error fetching product ${id}:`, err);
         res.status(500).json({ message: 'Database error' });
@@ -116,7 +138,6 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
         name, 
         description, 
         price, 
-        stock, 
         supplier_id, 
         category_id,
         size,
@@ -126,14 +147,11 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
     } = req.body;
     const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
   
-    if (!name || !price || !stock || !image) {
+    if (!name || !price || !image) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
     if (!isValidPrice(price)) {
         return res.status(400).json({ message: 'Invalid price value' });
-    }
-    if (!isValidStock(stock)) {
-        return res.status(400).json({ message: 'Invalid stock value' });
     }
 
     try {
@@ -145,7 +163,7 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
 
         // Analyze product similarity
         const newProduct = {
-            name, description, price, stock, image, supplier_id, category_id,
+            name, description, price, image, supplier_id, category_id,
             size, color, brand, gender
         };
         
@@ -160,8 +178,8 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
             });
         }
 
-        const sql = `INSERT INTO products (name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender]);
+        const sql = `INSERT INTO products (name, description, price, image, supplier_id, category_id, size, color, brand, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        await db.query(sql, [name, description, price, image, supplier_id, category_id, size, color, brand, gender]);
         res.json({ message: 'Product added successfully' });
     } catch (err) {
         console.error('Database error adding product:', err);
@@ -176,7 +194,6 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyn
         name, 
         description, 
         price, 
-        stock, 
         supplier_id, 
         category_id,
         size,
@@ -191,14 +208,11 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyn
         image = `/uploads/${req.file.filename}`;
     }
 
-    if (!name || !price || !stock || !image) {
+    if (!name || !price || !image) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
     if (!isValidPrice(price)) {
         return res.status(400).json({ message: 'Invalid price value' });
-    }
-    if (!isValidStock(stock)) {
-        return res.status(400).json({ message: 'Invalid stock value' });
     }
 
     try {
@@ -207,22 +221,14 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyn
             return res.status(400).json({ message: 'A product with this name already exists' });
         }
 
-        // Additional safety check: ensure stock update won't result in negative value
-        const [currentStock] = await db.query('SELECT stock FROM products WHERE product_id = ?', [id]);
-        if (currentStock.length === 0) {
+        // Check if product exists
+        const [existingProduct] = await db.query('SELECT product_id FROM products WHERE product_id = ?', [id]);
+        if (existingProduct.length === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }
         
-        // If this is a stock reduction, verify it won't go below zero
-        if (parseInt(stock) < currentStock[0].stock) {
-            const reduction = currentStock[0].stock - parseInt(stock);
-            if (reduction > currentStock[0].stock) {
-                return res.status(400).json({ message: 'Stock reduction would result in negative inventory' });
-            }
-        }
-        
-        const sql = `UPDATE products SET name = ?, description = ?, price = ?, stock = ?, image = ?, supplier_id = ?, category_id = ?, size = ?, color = ?, brand = ?, gender = ? WHERE product_id = ?`;
-        const [result] = await db.query(sql, [name, description, price, stock, image, supplier_id, category_id, size, color, brand, gender, id]);
+        const sql = `UPDATE products SET name = ?, description = ?, price = ?, image = ?, supplier_id = ?, category_id = ?, size = ?, color = ?, brand = ?, gender = ? WHERE product_id = ?`;
+        const [result] = await db.query(sql, [name, description, price, image, supplier_id, category_id, size, color, brand, gender, id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }
@@ -249,13 +255,73 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     }
 });
 
-// Get all products including inactive (admin only)
+// Get all products for admin management (admin only)
 router.get('/admin/all', authenticateToken, requireAdmin, async (req, res) => {
     try {
+        // Get all products
         const [products] = await db.query('SELECT * FROM products ORDER BY name');
-        res.json(products);
+        
+        // For each product, fetch its variants and calculate total stock
+        const productsWithVariantInfo = await Promise.all(products.map(async (product) => {
+            const [variants] = await db.query(
+                'SELECT variant_id, variant_name, variant_sku, variant_price FROM product_variants WHERE product_id = ? AND is_active = 1',
+                [product.product_id]
+            );
+            
+            let totalStock = 0;
+            let hasVariants = variants.length > 0;
+            
+            if (hasVariants) {
+                // Product has variants - calculate stock from inventory items
+                const variantIds = variants.map(v => v.variant_id);
+                const [stockResult] = await db.query(`
+                    SELECT COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as total_stock
+                    FROM inventory_items ii
+                    WHERE ii.variant_id IN (${variantIds.map(() => '?').join(',')})
+                `, variantIds);
+                totalStock = parseInt(stockResult[0]?.total_stock) || 0;
+            }
+            
+            return {
+                ...product,
+                variants: variants,
+                hasVariants: hasVariants,
+                totalStock: totalStock,
+                status: hasVariants ? (totalStock > 0 ? 'In Stock' : 'Out of Stock') : 'No Variants',
+                needsVariants: !hasVariants
+            };
+        }));
+        
+        res.json(productsWithVariantInfo);
     } catch (err) {
         console.error('Error fetching all products:', err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
+// Get products that need variants (admin only)
+router.get('/admin/need-variants', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        // Get products that don't have variants
+        const [products] = await db.query(`
+            SELECT p.* 
+            FROM products p 
+            LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1
+            WHERE pv.variant_id IS NULL
+            ORDER BY p.name
+        `);
+        
+        // Add helpful information for each product
+        const productsWithInfo = products.map(product => ({
+            ...product,
+            status: 'No Variants',
+            needsVariants: true,
+            message: 'This product needs variants to be visible to customers'
+        }));
+        
+        res.json(productsWithInfo);
+    } catch (err) {
+        console.error('Error fetching products needing variants:', err);
         res.status(500).json({ message: 'Database error' });
     }
 });
@@ -263,17 +329,10 @@ router.get('/admin/all', authenticateToken, requireAdmin, async (req, res) => {
 // Restore a deactivated product (admin only)
 router.patch('/:id/restore', authenticateToken, requireAdmin, async (req, res) => {
     const { id } = req.params;
-    const { stock } = req.body;
     
-    // Validate stock value
-    const stockValue = stock || 1;
-    if (!isValidStock(stockValue)) {
-        return res.status(400).json({ message: 'Invalid stock value' });
-    }
-    
-    const sql = `UPDATE products SET stock = ? WHERE product_id = ?`;
     try {
-        const [result] = await db.query(sql, [stockValue, id]);
+        const sql = `UPDATE products SET is_active = 1 WHERE product_id = ?`;
+        const [result] = await db.query(sql, [id]);
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }
@@ -284,40 +343,6 @@ router.patch('/:id/restore', authenticateToken, requireAdmin, async (req, res) =
     }
 });
 
-// Add inventory to existing product (admin only)
-router.patch('/:id/add-inventory', authenticateToken, requireAdmin, async (req, res) => {
-    const { id } = req.params;
-    const { quantity } = req.body;
-    
-    if (!quantity || !isValidStock(quantity)) {
-        return res.status(400).json({ message: 'Valid quantity is required' });
-    }
-    
-    try {
-        // Get current stock
-        const [currentStock] = await db.query('SELECT stock, name FROM products WHERE product_id = ?', [id]);
-        if (currentStock.length === 0) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-        
-        const newStock = currentStock[0].stock + parseInt(quantity);
-        
-        // Update stock
-        const [result] = await db.query('UPDATE products SET stock = ? WHERE product_id = ?', [newStock, id]);
-        if (result.affectedRows === 0) {
-            return res.status(500).json({ message: 'Failed to update inventory' });
-        }
-        
-        res.json({ 
-            message: `Inventory updated successfully. ${quantity} units added to ${currentStock[0].name}`,
-            oldStock: currentStock[0].stock,
-            newStock: newStock,
-            addedQuantity: quantity
-        });
-    } catch (err) {
-        console.error('Error adding inventory:', err);
-        return res.status(500).json({ message: 'Database error', details: err.message });
-    }
-});
+
 
 module.exports = router; 

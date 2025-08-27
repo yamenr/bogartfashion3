@@ -7,7 +7,7 @@ import '../pages/manager/AdminTheme.css';
 
 function ProductManager() {
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ name: '', description: '', price: '', stock: '', image: '', supplier_id: '', category_id: '' });
+  const [form, setForm] = useState({ name: '', description: '', price: '', image: '', supplier_id: '', category_id: '' });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [message, setMessage] = useState('');
@@ -75,13 +75,7 @@ function ProductManager() {
       }
     }
     
-    if (name === 'stock') {
-      const numValue = parseInt(value);
-      if (isNaN(numValue) || numValue < 0 || !Number.isInteger(numValue)) {
-        setMessage('Stock must be a non-negative integer');
-        return;
-      }
-    }
+
     
     setForm({ ...form, [name]: value });
     setMessage(''); // Clear any previous error messages
@@ -107,7 +101,7 @@ function ProductManager() {
   const handleSubmit = async e => {
     e.preventDefault();
     
-    if (!form.name || !form.description || !form.price || !form.stock) {
+    if (!form.name || !form.description || !form.price) {
       setMessage('Please fill in all required fields');
       return;
     }
@@ -117,7 +111,6 @@ function ProductManager() {
       formData.append('name', form.name);
       formData.append('description', form.description);
       formData.append('price', form.price);
-      formData.append('stock', form.stock);
       formData.append('supplier_id', form.supplier_id);
       formData.append('category_id', form.category_id);
       
@@ -136,7 +129,7 @@ function ProductManager() {
 
       if (response.status === 201) {
         setMessage('Product added successfully!');
-        setForm({ name: '', description: '', price: '', stock: '', image: '', supplier_id: '', category_id: '' });
+        setForm({ name: '', description: '', price: '', image: '', supplier_id: '', category_id: '' });
         setImageFile(null);
         setImagePreview('');
         setShowAddForm(false);
@@ -151,7 +144,7 @@ function ProductManager() {
   const handleEdit = async e => {
     e.preventDefault();
     
-    if (!form.name || !form.description || !form.price || !form.stock) {
+    if (!form.name || !form.description || !form.price) {
       setMessage('Please fill in all required fields');
       return;
     }
@@ -161,7 +154,6 @@ function ProductManager() {
       formData.append('name', form.name);
       formData.append('description', form.description);
       formData.append('price', form.price);
-      formData.append('stock', form.stock);
       formData.append('supplier_id', form.supplier_id);
       formData.append('category_id', form.category_id);
       
@@ -180,7 +172,7 @@ function ProductManager() {
 
       if (response.status === 200) {
         setMessage('Product updated successfully!');
-        setForm({ name: '', description: '', price: '', stock: '', image: '', supplier_id: '', category_id: '' });
+        setForm({ name: '', description: '', price: '', image: '', supplier_id: '', category_id: '' });
         setImageFile(null);
         setImagePreview('');
         setEditingProduct(null);
@@ -229,37 +221,11 @@ function ProductManager() {
     }
   };
 
-  const handleQuickAddInventory = async (product) => {
-    const newStock = prompt(`Current stock: ${product.stock}. Enter new stock amount:`, product.stock);
-    
-    if (newStock !== null) {
-      const numStock = parseInt(newStock);
-      if (isNaN(numStock) || numStock < 0) {
-        setMessage('Please enter a valid stock number');
-        return;
-      }
 
-      try {
-        const response = await axios.put(`/api/products/${product.product_id}`, {
-          stock: numStock
-        }, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.status === 200) {
-          setMessage('Stock updated successfully!');
-          fetchProductData();
-        }
-      } catch (error) {
-        console.error('Error updating stock:', error);
-        setMessage(error.response?.data?.message || 'Error updating stock');
-      }
-    }
-  };
 
   const handleOpenModalForAdd = () => {
     setEditingProduct(null);
-    setForm({ name: '', description: '', price: '', stock: '', image: '', supplier_id: '', category_id: '' });
+    setForm({ name: '', description: '', price: '', image: '', supplier_id: '', category_id: '' });
     setImageFile(null);
     setImagePreview('');
     setIsModalOpen(true);
@@ -271,7 +237,6 @@ function ProductManager() {
       name: product.name || '',
       description: product.description || '',
       price: product.price || '',
-      stock: product.stock || '',
       image: product.image || '',
       supplier_id: product.supplier_id || '',
       category_id: product.category_id || ''
@@ -284,7 +249,7 @@ function ProductManager() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setForm({ name: '', description: '', price: '', stock: '', image: '', supplier_id: '', category_id: '' });
+    setForm({ name: '', description: '', price: '', image: '', supplier_id: '', category_id: '' });
     setImageFile(null);
     setImagePreview('');
   };
@@ -404,15 +369,21 @@ function ProductManager() {
                 <td>{p.brand || 'N/A'}</td>
                 <td>{p.gender || 'N/A'}</td>
                 <td>{formatPrice(p.price)}</td>
-                <td style={{ 
-                  color: p.stock < 0 ? '#dc3545' : p.stock < 10 ? '#ffc107' : '#28a745',
-                  fontWeight: p.stock < 0 ? 'bold' : 'normal'
-                }}>
-                  {p.stock < 0 ? `${p.stock} (OUT OF STOCK)` : p.stock}
+                <td>
+                  {p.totalStock !== undefined ? (
+                    <span style={{ 
+                      color: p.totalStock > 0 ? '#28a745' : '#dc3545',
+                      fontWeight: 'normal'
+                    }}>
+                      {p.totalStock > 0 ? `${p.totalStock} (Variants)` : 'No Variants'}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#888' }}>No Variants</span>
+                  )}
                 </td>
                 <td>
-                  <span className={`status-badge ${p.stock > 0 ? 'active' : 'expired'}`}>
-                    {p.stock > 0 ? 'Active' : 'Out of Stock'}
+                  <span className={`status-badge ${p.totalStock > 0 ? 'active' : 'expired'}`}>
+                    {p.totalStock > 0 ? 'Active' : 'No Variants'}
                   </span>
                 </td>
                 <td>
@@ -424,14 +395,8 @@ function ProductManager() {
                     >
                       Edit
                     </button>
-                    <button 
-                      onClick={() => handleQuickAddInventory(p)} 
-                      className="action-btn edit" 
-                      title="Add Inventory"
-                    >
-                      Stock
-                    </button>
-                    {p.stock > 0 ? (
+
+                    {p.totalStock > 0 ? (
                       <button 
                         onClick={() => handleDeleteProduct(p.product_id)} 
                         className="action-btn delete" 

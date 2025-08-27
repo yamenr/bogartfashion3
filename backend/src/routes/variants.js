@@ -10,7 +10,31 @@ const db = dbSingleton.getConnection();
 // This is developed in parallel and does NOT affect existing routes
 // =====================================================
 
-// Get all variants
+// Get all variants (public - no authentication required)
+router.get('/public', async (req, res) => {
+    try {
+        const [variants] = await db.execute(`
+            SELECT 
+                pv.variant_id,
+                pv.product_id,
+                pv.variant_name,
+                pv.variant_sku,
+                pv.variant_price,
+                p.name as product_name
+            FROM product_variants pv
+            JOIN products p ON pv.product_id = p.product_id
+            WHERE pv.is_active = 1
+            ORDER BY p.name, pv.variant_name
+        `);
+        
+        res.json(variants);
+    } catch (err) {
+        console.error('Error fetching public variants:', err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
+// Get all variants (admin only)
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const [variants] = await db.execute(`
@@ -31,7 +55,31 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
     }
 });
 
-// Get all variants for a specific product
+// Get all variants for a specific product (public - no authentication required)
+router.get('/product/:productId/public', async (req, res) => {
+    try {
+        const { productId } = req.params;
+        
+        const [variants] = await db.execute(`
+            SELECT 
+                pv.variant_id,
+                pv.product_id,
+                pv.variant_name,
+                pv.variant_sku,
+                pv.variant_price
+            FROM product_variants pv
+            WHERE pv.product_id = ? AND pv.is_active = 1
+            ORDER BY pv.variant_name
+        `, [productId]);
+        
+        res.json(variants);
+    } catch (err) {
+        console.error('Error fetching public product variants:', err);
+        res.status(500).json({ message: 'Database error' });
+    }
+});
+
+// Get all variants for a specific product (admin only)
 router.get('/product/:productId', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { productId } = req.params;

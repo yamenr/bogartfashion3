@@ -124,7 +124,7 @@ const AdvancedInventory = () => {
                 
                 const [locationsRes, productsRes] = await Promise.all([
                     axios.get('/api/locations', config),
-                    axios.get('/api/products', config)
+                    axios.get('/api/products/admin/all', config)
                 ]);
                 
                 setLocations(locationsRes.data);

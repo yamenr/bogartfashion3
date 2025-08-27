@@ -27,22 +27,60 @@ router.post('/', authenticateToken, async (req, res) => {
 
         // Validate inventory before processing order
         for (const item of items) {
-            const [productResult] = await connection.query(
-                'SELECT stock, name FROM products WHERE product_id = ?',
-                [item.product_id]
-            );
-            
-            if (productResult.length === 0) {
-                await connection.rollback();
-                return res.status(400).json({ message: `Product with ID ${item.product_id} not found` });
-            }
-            
-            const product = productResult[0];
-            if (product.stock < item.quantity) {
-                await connection.rollback();
-                return res.status(400).json({ 
-                    message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` 
-                });
+            // Check if this is a variant-based product
+            if (item.variant_id) {
+                // Check variant inventory
+                const [variantResult] = await connection.query(
+                    `SELECT 
+                        p.name as product_name,
+                        pv.variant_name,
+                        COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as available_stock
+                    FROM products p
+                    JOIN product_variants pv ON p.product_id = pv.product_id
+                    LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
+                    WHERE pv.variant_id = ? AND p.product_id = ?
+                    GROUP BY pv.variant_id`,
+                    [item.variant_id, item.product_id]
+                );
+                
+                if (variantResult.length === 0) {
+                    await connection.rollback();
+                    return res.status(400).json({ message: `Variant with ID ${item.variant_id} not found for product ${item.product_id}` });
+                }
+                
+                const variant = variantResult[0];
+                if (variant.available_stock < item.quantity) {
+                    await connection.rollback();
+                    return res.status(400).json({ 
+                        message: `Insufficient stock for ${variant.product_name} - ${variant.variant_name}. Available: ${variant.available_stock}, Requested: ${item.quantity}` 
+                    });
+                }
+            } else {
+                // Check product total inventory (sum of all variants)
+                const [productResult] = await connection.query(
+                    `SELECT 
+                        p.name as product_name,
+                        COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as total_stock
+                    FROM products p
+                    LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+                    LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
+                    WHERE p.product_id = ?
+                    GROUP BY p.product_id`,
+                    [item.product_id]
+                );
+                
+                if (productResult.length === 0) {
+                    await connection.rollback();
+                    return res.status(400).json({ message: `Product with ID ${item.product_id} not found` });
+                }
+                
+                const product = productResult[0];
+                if (product.total_stock < item.quantity) {
+                    await connection.rollback();
+                    return res.status(400).json({ 
+                        message: `Insufficient stock for ${product.product_name}. Available: ${product.total_stock}, Requested: ${item.quantity}` 
+                    });
+                }
             }
         }
 
@@ -59,10 +97,10 @@ router.post('/', authenticateToken, async (req, res) => {
         const orderId = orderResult.insertId;
 
         const orderItemsSql = `
-            INSERT INTO order_items (order_id, product_id, quantity, price)
+            INSERT INTO order_items (order_id, product_id, variant_id, quantity, price)
             VALUES ?
         `;
-        const orderItemsValues = items.map(item => [orderId, item.product_id, item.quantity, item.price]);
+        const orderItemsValues = items.map(item => [orderId, item.product_id, item.variant_id || null, item.quantity, item.price]);
         await connection.query(orderItemsSql, [orderItemsValues]);
 
         // Update product stock using the safe inventory manager
@@ -78,11 +116,18 @@ router.post('/', authenticateToken, async (req, res) => {
         const [userResult] = await connection.query('SELECT username, email FROM users WHERE user_id = ?', [user_id]);
         const user = userResult[0];
 
-        // Get order items with product names for invoice
+        // Get order items with product names and variant info for invoice
         const [itemsResult] = await connection.query(`
-            SELECT oi.product_id, oi.quantity, oi.price, p.name as product_name
+            SELECT 
+                oi.product_id, 
+                oi.variant_id,
+                oi.quantity, 
+                oi.price, 
+                p.name as product_name,
+                COALESCE(pv.variant_name, 'Standard') as variant_name
             FROM order_items oi
             JOIN products p ON oi.product_id = p.product_id
+            LEFT JOIN product_variants pv ON oi.variant_id = pv.variant_id
             WHERE oi.order_id = ?
         `, [orderId]);
 

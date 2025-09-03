@@ -11,8 +11,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
     image: '', 
     supplier_id: '', 
     category_id: '',
-    size: '',
-    color: '',
     material: '',
     brand: '',
     season: 'All Season',
@@ -36,8 +34,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
         image: product.image || '',
         supplier_id: product.supplier_id || '',
         category_id: product.category_id || '',
-        size: product.size || '',
-        color: product.color || '',
         material: product.material || '',
         brand: product.brand || '',
         season: product.season || 'All Season',
@@ -54,8 +50,6 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
         image: '', 
         supplier_id: '', 
         category_id: '',
-        size: '',
-        color: '',
         material: '',
         brand: '',
         season: 'All Season',
@@ -106,8 +100,7 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
     formData.append('price', form.price);
     formData.append('supplier_id', form.supplier_id || '');
     formData.append('category_id', form.category_id || '');
-    formData.append('size', form.size);
-    formData.append('color', form.color);
+
     formData.append('material', form.material);
     formData.append('brand', form.brand);
     formData.append('season', form.season);
@@ -176,16 +169,18 @@ const ProductModal = ({ isOpen, onClose, product, suppliers, categories, onSucce
               <input type="number" name="price" value={form.price} onChange={handleChange} required step="0.01" />
             </div>
           
-          {/* Fashion-specific fields */}
-          <div className="form-row">
-            <div className="form-group">
-              <label>Size</label>
-              <input type="text" name="size" value={form.size} onChange={handleChange} placeholder="S, M, L, XL, etc." />
-            </div>
-            <div className="form-group">
-              <label>Color</label>
-              <input type="text" name="color" value={form.color} onChange={handleChange} placeholder="Red, Blue, Black, etc." />
-            </div>
+          {/* Note: Size and Color are now managed at the variant level */}
+          <div style={{ 
+            backgroundColor: '#e3f2fd', 
+            border: '1px solid #2196f3', 
+            borderRadius: '4px', 
+            padding: '10px', 
+            marginBottom: '15px',
+            fontSize: '14px',
+            color: '#1976d2'
+          }}>
+            <strong>📝 Note:</strong> Size and Color are now managed at the variant level. 
+            After creating this product, you can add variants with specific sizes and colors in the Advanced Inventory section.
           </div>
           
           <div className="form-row">

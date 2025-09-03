@@ -29,7 +29,9 @@ const AdvancedInventory = () => {
         product_id: '',
         variant_name: '',
         variant_sku: '',
-        variant_price: ''
+        variant_price: '',
+        use_product_price: true,
+        stock_quantity: 0
     });
     const [locationForm, setLocationForm] = useState({
         name: '',
@@ -193,7 +195,9 @@ const AdvancedInventory = () => {
             product_id: variant.product_id,
             variant_name: variant.variant_name,
             variant_sku: variant.variant_sku,
-            variant_price: variant.variant_price
+            variant_price: variant.variant_price,
+            use_product_price: false, // When editing, assume custom price
+            stock_quantity: variant.stock_quantity || 0
         });
         setShowVariantForm(true);
     };
@@ -206,17 +210,28 @@ const AdvancedInventory = () => {
                 headers: { Authorization: `Bearer ${token}` }
             };
             
+            // Prepare variant data
+            const variantData = { ...variantForm };
+            
+            // If using product price, get the product price from the selected product
+            if (variantData.use_product_price && variantData.product_id) {
+                const selectedProduct = products.find(p => p.product_id == variantData.product_id);
+                if (selectedProduct) {
+                    variantData.variant_price = selectedProduct.price;
+                }
+            }
+            
             if (editingVariant) {
                 // Update existing variant
-                await axios.put(`/api/variants/${editingVariant.variant_id}`, variantForm, config);
+                await axios.put(`/api/variants/${editingVariant.variant_id}`, variantData, config);
                 setEditingVariant(null);
             } else {
                 // Create new variant
-                await axios.post('/api/variants', variantForm, config);
+                await axios.post('/api/variants', variantData, config);
             }
             
             setShowVariantForm(false);
-            setVariantForm({ product_id: '', variant_name: '', variant_sku: '', variant_price: '' });
+            setVariantForm({ product_id: '', variant_name: '', variant_sku: '', variant_price: '', use_product_price: true, stock_quantity: 0 });
             setSkuGenerator({ productType: '', color: '', size: '' });
             // Reload variants data
             if (activeTab === 'variants') {
@@ -243,7 +258,9 @@ const AdvancedInventory = () => {
             product_id: '',
             variant_name: '',
             variant_sku: '',
-            variant_price: ''
+            variant_price: '',
+            use_product_price: true,
+            stock_quantity: 0
         });
     };
 
@@ -276,6 +293,8 @@ const AdvancedInventory = () => {
             }
         }
     };
+
+
 
     const handleLocationSubmit = async (e) => {
         e.preventDefault();
@@ -496,6 +515,8 @@ const AdvancedInventory = () => {
             </div>
         );
     }
+
+
 
     const renderVariantsTab = () => (
         <div className="admin-section">
@@ -725,6 +746,7 @@ const AdvancedInventory = () => {
                 >
                     Product Variants
                 </button>
+
                 <button 
                     className={`tab ${activeTab === 'locations' ? 'active' : ''}`}
                     onClick={() => setActiveTab('locations')}
@@ -741,6 +763,7 @@ const AdvancedInventory = () => {
 
             <div className="tab-content">
                 {activeTab === 'variants' && renderVariantsTab()}
+
                 {activeTab === 'locations' && renderLocationsTab()}
                 {activeTab === 'inventory' && renderInventoryTab()}
             </div>
@@ -834,12 +857,55 @@ const AdvancedInventory = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>Price:</label>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={variantForm.use_product_price}
+                                        onChange={(e) => {
+                                            const useProductPrice = e.target.checked;
+                                            setVariantForm({
+                                                ...variantForm, 
+                                                use_product_price: useProductPrice,
+                                                variant_price: useProductPrice ? '' : variantForm.variant_price
+                                            });
+                                        }}
+                                    />
+                                    Use Product Price
+                                </label>
+                            </div>
+                            
+                            {!variantForm.use_product_price && (
+                                <div className="form-group">
+                                    <label>Custom Price:</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={variantForm.variant_price}
+                                        onChange={(e) => setVariantForm({...variantForm, variant_price: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                            )}
+                            
+                            {variantForm.use_product_price && variantForm.product_id && (
+                                <div className="form-group">
+                                    <label>Product Price:</label>
+                                    <input
+                                        type="text"
+                                        value={products.find(p => p.product_id == variantForm.product_id)?.price || 'N/A'}
+                                        disabled
+                                        className="disabled-input"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label>Stock Quantity:</label>
                                 <input
                                     type="number"
-                                    step="0.01"
-                                    value={variantForm.variant_price}
-                                    onChange={(e) => setVariantForm({...variantForm, variant_price: e.target.value})}
+                                    min="0"
+                                    value={variantForm.stock_quantity}
+                                    onChange={(e) => setVariantForm({...variantForm, stock_quantity: parseInt(e.target.value) || 0})}
                                     required
                                 />
                             </div>

@@ -1,0 +1,198 @@
+/* PriceRangeSlider.css */
+
+.price-range-slider {
+  width: 100%;
+  padding: 15px 0;
+}
+
+.slider-container {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.slider-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, #333, #555);
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid #444;
+}
+
+.slider-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(to right, #C2883A, #e6a94d);
+  border-radius: 3px;
+  transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 0 10px rgba(194, 136, 58, 0.3);
+}
+
+.slider-handle {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  background: #C2883A;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+.slider-handle:hover {
+  background: #e6a94d;
+  transform: translate(-50%, -50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(194, 136, 58, 0.4);
+}
+
+.slider-handle:active {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 6px 16px rgba(194, 136, 58, 0.5);
+}
+
+.slider-handle:hover {
+  background: #e6a94d;
+}
+
+/* Price Display */
+.price-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.min-price {
+  color: #888;
+}
+
+.current-price {
+  color: #C2883A;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.max-price {
+  color: #888;
+}
+
+/* Price Inputs */
+.price-inputs {
+  margin-top: 15px;
+  display: flex;
+  gap: 15px;
+}
+
+.price-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-input label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-input-field {
+  width: 100%;
+  padding: 8px 12px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.price-input-field:focus {
+  border-color: #C2883A;
+  box-shadow: 0 0 0 2px rgba(194, 136, 58, 0.2);
+}
+
+.price-input-field::-webkit-outer-spin-button,
+.price-input-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.price-input-field[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .slider-handle {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .slider-track {
+    height: 8px;
+  }
+}
+
+/* Dark Theme Enhancements */
+.slider-track:hover {
+  background: linear-gradient(to right, #444, #666);
+}
+
+.slider-track:active {
+  background: linear-gradient(to right, #555, #777);
+}
+
+/* Animation for smooth transitions */
+.slider-fill,
+.slider-handle {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth dragging state */
+.slider-handle.dragging {
+  transition: none;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.slider-fill.dragging {
+  transition: none;
+}
+
+/* Focus states for accessibility */
+.slider-handle:focus {
+  outline: 2px solid #C2883A;
+  outline-offset: 2px;
+}
+
+.price-input-field:focus {
+  outline: 2px solid #C2883A;
+  outline-offset: 2px;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+  .price-inputs {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .slider-handle {
+    width: 22px;
+    height: 22px;
+  }
+}

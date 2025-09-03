@@ -41,10 +41,13 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
             SELECT 
                 pv.*,
                 p.name as product_name,
-                p.description as product_description
+                p.description as product_description,
+                COUNT(ii.item_id) as stock_quantity
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.product_id
+            LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id AND ii.status = 'available'
             WHERE pv.is_active = 1
+            GROUP BY pv.variant_id
             ORDER BY p.name, pv.variant_name
         `);
         
@@ -132,7 +135,7 @@ router.get('/with-inventory', authenticateToken, requireAdmin, async (req, res) 
 // Create a new variant
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { product_id, variant_name, variant_sku, variant_price } = req.body;
+        const { product_id, variant_name, variant_sku, variant_price, stock_quantity } = req.body;
         
         // Validate required fields
         if (!product_id || !variant_name || !variant_sku || !variant_price) {
@@ -171,11 +174,31 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
         
         const variantId = result.insertId;
         
-        // Get the created variant
-        const [newVariant] = await db.execute(
-            'SELECT * FROM product_variants WHERE variant_id = ?',
-            [variantId]
-        );
+        // Create inventory items for the stock quantity
+        if (stock_quantity && stock_quantity > 0) {
+            // Get the first location (assuming location_id = 1 exists)
+            const [locations] = await db.execute('SELECT location_id FROM locations LIMIT 1');
+            const locationId = locations.length > 0 ? locations[0].location_id : 1;
+            
+            // Create inventory items
+            for (let i = 0; i < stock_quantity; i++) {
+                await db.execute(`
+                    INSERT INTO inventory_items (variant_id, location_id, status, \`condition\`, created_at)
+                    VALUES (?, ?, 'available', 'new', NOW())
+                `, [variantId, locationId]);
+            }
+        }
+        
+        // Get the created variant with stock information
+        const [newVariant] = await db.execute(`
+            SELECT 
+                pv.*,
+                COUNT(ii.item_id) as stock_quantity
+            FROM product_variants pv
+            LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id AND ii.status = 'available'
+            WHERE pv.variant_id = ?
+            GROUP BY pv.variant_id
+        `, [variantId]);
         
         res.status(201).json({
             message: 'Variant created successfully',
@@ -192,7 +215,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 router.put('/:variantId', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { variantId } = req.params;
-        const { variant_name, variant_sku, variant_price, is_active } = req.body;
+        const { variant_name, variant_sku, variant_price, is_active, stock_quantity } = req.body;
         
         // Check if variant exists
         const [existingVariant] = await db.execute(
@@ -211,11 +234,54 @@ router.put('/:variantId', authenticateToken, requireAdmin, async (req, res) => {
             WHERE variant_id = ?
         `, [variant_name, variant_sku, variant_price, is_active, variantId]);
         
-        // Get updated variant
-        const [updatedVariant] = await db.execute(
-            'SELECT * FROM product_variants WHERE variant_id = ?',
-            [variantId]
-        );
+        // Handle stock quantity changes
+        if (stock_quantity !== undefined) {
+            // Get current stock count
+            const [currentStock] = await db.execute(`
+                SELECT COUNT(*) as count FROM inventory_items 
+                WHERE variant_id = ? AND status = 'available'
+            `, [variantId]);
+            
+            const currentCount = currentStock[0].count;
+            const targetCount = parseInt(stock_quantity) || 0;
+            
+            if (targetCount > currentCount) {
+                // Add more inventory items
+                const [locations] = await db.execute('SELECT location_id FROM locations LIMIT 1');
+                const locationId = locations.length > 0 ? locations[0].location_id : 1;
+                
+                for (let i = currentCount; i < targetCount; i++) {
+                    await db.execute(`
+                        INSERT INTO inventory_items (variant_id, location_id, status, \`condition\`, created_at)
+                        VALUES (?, ?, 'available', 'new', NOW())
+                    `, [variantId, locationId]);
+                }
+            } else if (targetCount < currentCount) {
+                // Remove excess inventory items (mark as sold)
+                const [excessItems] = await db.execute(`
+                    SELECT item_id FROM inventory_items 
+                    WHERE variant_id = ? AND status = 'available'
+                    LIMIT ?
+                `, [variantId, currentCount - targetCount]);
+                
+                for (const item of excessItems) {
+                    await db.execute(`
+                        UPDATE inventory_items SET status = 'sold' WHERE item_id = ?
+                    `, [item.item_id]);
+                }
+            }
+        }
+        
+        // Get updated variant with stock information
+        const [updatedVariant] = await db.execute(`
+            SELECT 
+                pv.*,
+                COUNT(ii.item_id) as stock_quantity
+            FROM product_variants pv
+            LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id AND ii.status = 'available'
+            WHERE pv.variant_id = ?
+            GROUP BY pv.variant_id
+        `, [variantId]);
         
         res.json({
             message: 'Variant updated successfully',

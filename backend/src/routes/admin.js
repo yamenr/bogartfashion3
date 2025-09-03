@@ -458,25 +458,26 @@ router.get('/analytics/inventory', authenticateToken, requireAdmin, async (req, 
             SELECT 
                 p.product_id,
                 p.name as product_name,
-                p.stock as current_stock,
+                COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as current_stock,
                 c.name as category_name,
                 s.name as supplier_name,
                 p.price,
                 COALESCE(SUM(oi.quantity), 0) as units_sold_last_30_days,
                 CASE 
-                    WHEN p.stock <= 10 THEN 'Critical'
-                    WHEN p.stock <= 25 THEN 'Low'
-                    WHEN p.stock <= 50 THEN 'Medium'
+                    WHEN COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) <= 10 THEN 'Critical'
+                    WHEN COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) <= 25 THEN 'Low'
+                    WHEN COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) <= 50 THEN 'Medium'
                     ELSE 'Good'
                 END as stock_status
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.category_id
             LEFT JOIN suppliers s ON p.supplier_id = s.supplier_id
+            LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+            LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
             LEFT JOIN order_items oi ON p.product_id = oi.product_id
-            LEFT JOIN orders o ON oi.order_id = o.order_id
-            WHERE o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR o.order_date IS NULL
-            GROUP BY p.product_id, p.name, p.stock, c.name, s.name, p.price
-            ORDER BY p.stock ASC
+            LEFT JOIN orders o ON oi.order_id = o.order_id AND o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY p.product_id, p.name, c.name, s.name, p.price
+            ORDER BY current_stock ASC
         `);
         
         // Calculate inventory metrics

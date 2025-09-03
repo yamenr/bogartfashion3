@@ -46,11 +46,12 @@ export default function AnalyticsDashboard() {
   const [handlingData, setHandlingData] = useState({ handling_times: [], metrics: {} });
   
   // State for filters and UI
-  const [timeRange, setTimeRange] = useState('month');
+  const [timeRange, setTimeRange] = useState('day'); // Changed to 'day' to show last 30 days by default
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!loadingSettings) {
@@ -64,6 +65,7 @@ export default function AnalyticsDashboard() {
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
+    setError(''); // Clear any previous errors
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
@@ -90,6 +92,14 @@ export default function AnalyticsDashboard() {
         axios.get('/api/admin/analytics/order-handling', { headers })
       ]);
 
+      // Debug: Log the data being received
+      console.log('Sales Data:', salesRes.data);
+      console.log('Supplier Data:', supplierRes.data);
+      console.log('Category Data:', categoryRes.data);
+      console.log('Customer Data:', customerRes.data);
+      console.log('Inventory Data:', inventoryRes.data);
+      console.log('Handling Data:', handlingRes.data);
+      
       setSalesData(salesRes.data);
       setSupplierData(supplierRes.data);
       setCategoryData(categoryRes.data);
@@ -98,6 +108,27 @@ export default function AnalyticsDashboard() {
       setHandlingData(handlingRes.data);
     } catch (err) {
       console.error('Error fetching analytics data:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      
+      // Check if it's an authentication error
+      if (err.response?.status === 401) {
+        console.error('Authentication failed - user may not be admin');
+        setError('Authentication failed. Please make sure you are logged in as an admin.');
+      } else if (err.response?.status === 403) {
+        console.error('Access forbidden - user may not have admin privileges');
+        setError('Access denied. Admin privileges required.');
+      } else {
+        console.error('API error:', err.response?.status, err.response?.data);
+        setError('Failed to load analytics data. Please try again.');
+      }
+      
+      // Set default empty data to prevent crashes
+      setSalesData([]);
+      setSupplierData([]);
+      setCategoryData([]);
+      setCustomerData({ customers: [], metrics: {} });
+      setInventoryData({ inventory: [], metrics: {} });
+      setHandlingData({ handling_times: [], metrics: {} });
     } finally {
       setLoading(false);
     }
@@ -121,11 +152,18 @@ export default function AnalyticsDashboard() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error exporting data:', err);
+      alert('Error exporting data. Please try again.');
     }
   };
 
   if (loadingSettings) {
-    return <div className="analytics-container"><p>Loading Analytics Dashboard...</p></div>;
+    return (
+      <div className="analytics-container">
+        <div className="loading-state">
+          <p>Loading Analytics Dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isUserAdmin) {
@@ -134,11 +172,11 @@ export default function AnalyticsDashboard() {
 
   // Chart data preparation
   const salesChartData = {
-    labels: salesData.map(d => d.period),
+    labels: salesData && salesData.length > 0 ? salesData.map(d => d.period) : ['No Data'],
     datasets: [
       {
         label: 'Total Sales',
-        data: salesData.map(d => d.total_sales),
+        data: salesData && salesData.length > 0 ? salesData.map(d => d.total_sales) : [0],
         borderColor: '#C2883A',
         backgroundColor: 'rgba(194, 136, 58, 0.1)',
         tension: 0.3,
@@ -147,7 +185,7 @@ export default function AnalyticsDashboard() {
       },
       {
         label: 'Order Count',
-        data: salesData.map(d => d.order_count),
+        data: salesData && salesData.length > 0 ? salesData.map(d => d.order_count) : [0],
         borderColor: '#28a745',
         backgroundColor: 'rgba(40, 167, 69, 0.1)',
         tension: 0.3,
@@ -158,10 +196,10 @@ export default function AnalyticsDashboard() {
   };
 
   const supplierChartData = {
-    labels: supplierData.map(s => s.supplier_name),
+    labels: supplierData && supplierData.length > 0 ? supplierData.map(s => s.supplier_name) : ['No Data'],
     datasets: [{
       label: 'Total Revenue',
-      data: supplierData.map(s => s.total_revenue),
+      data: supplierData && supplierData.length > 0 ? supplierData.map(s => s.total_revenue) : [0],
       backgroundColor: [
         '#C2883A', '#28a745', '#007bff', '#ffc107', '#dc3545',
         '#6c757d', '#17a2b8', '#fd7e14', '#e83e8c', '#6f42c1'
@@ -170,10 +208,10 @@ export default function AnalyticsDashboard() {
   };
 
   const categoryChartData = {
-    labels: categoryData.map(c => c.category_name),
+    labels: categoryData && categoryData.length > 0 ? categoryData.map(c => c.category_name) : ['No Data'],
     datasets: [{
       label: 'Total Revenue',
-      data: categoryData.map(c => c.total_revenue),
+      data: categoryData && categoryData.length > 0 ? categoryData.map(c => c.total_revenue) : [0],
       backgroundColor: [
         '#C2883A', '#28a745', '#007bff', '#ffc107', '#dc3545',
         '#6c757d', '#17a2b8', '#fd7e14', '#e83e8c', '#6f42c1'
@@ -182,10 +220,10 @@ export default function AnalyticsDashboard() {
   };
 
   const orderStatusData = {
-    labels: handlingData.handling_times?.map(h => h.status) || [],
+    labels: handlingData.handling_times && handlingData.handling_times.length > 0 ? handlingData.handling_times.map(h => h.status) : ['No Data'],
     datasets: [{
       label: 'Orders',
-      data: handlingData.handling_times?.map(h => h.order_count) || [],
+      data: handlingData.handling_times && handlingData.handling_times.length > 0 ? handlingData.handling_times.map(h => h.order_count) : [0],
       backgroundColor: ['#C2883A', '#28a745', '#007bff', '#ffc107', '#dc3545']
     }]
   };
@@ -231,6 +269,38 @@ export default function AnalyticsDashboard() {
         >
           {loading ? 'Loading...' : 'Refresh Data'}
         </button>
+        
+        {loading && (
+          <div className="loading-overlay">
+            <p>Fetching analytics data...</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="error-message" style={{
+            backgroundColor: '#dc3545',
+            color: 'white',
+            padding: '15px',
+            margin: '20px 0',
+            borderRadius: '5px',
+            textAlign: 'center'
+          }}>
+            <strong>Error:</strong> {error}
+            <button 
+              onClick={() => setError('')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                float: 'right',
+                fontSize: '18px',
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Navigation Tabs */}

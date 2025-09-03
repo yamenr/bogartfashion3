@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { BsCart, BsSearch } from 'react-icons/bs';
 import { formatNumberWithCommas } from '../utils/currency';
+import PriceRangeSlider from '../components/PriceRangeSlider';
 import './ProductsPage.css'; // Import the new CSS file
 
 // Helper to get currency symbol
@@ -55,7 +56,7 @@ const ProductsPage = () => {
   };
 
   const [selectedCategory, setSelectedCategory] = useState('All Products');
-  const [priceRange, setPriceRange] = useState(100000);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false); // State for mobile filters
@@ -80,6 +81,16 @@ const ProductsPage = () => {
         
         setSizes(uniqueSizes.map(size => ({ id: size, name: size })));
         setColors(uniqueColors.map(color => ({ id: color, name: color })));
+        
+        // Calculate min and max prices from products
+        if (res.data.length > 0) {
+          const prices = res.data.map(p => parseFloat(p.price)).filter(price => !isNaN(price));
+          if (prices.length > 0) {
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            setPriceRange({ min: minPrice, max: maxPrice });
+          }
+        }
       })
       .catch(err => console.error('ProductsPage: Error fetching products:', err));
 
@@ -109,8 +120,8 @@ const ProductsPage = () => {
     navigate(`${location.pathname}?${params.toString()}`);
   };
 
-  const handlePriceChange = (e) => {
-    setPriceRange(e.target.value);
+  const handlePriceChange = (maxPrice) => {
+    setPriceRange({ min: 0, max: maxPrice });
   };
 
   const handleSizeChange = (e) => {
@@ -142,7 +153,7 @@ const ProductsPage = () => {
     const categoryObject = categories.find(c => c.category_id === product.category_id);
     const categoryName = categoryObject ? categoryObject.name : '';
     const matchesCategory = selectedCategory === 'All Products' || categoryName === selectedCategory;
-    const matchesPrice = parseFloat(product.price) <= parseFloat(priceRange);
+    const matchesPrice = parseFloat(product.price) >= priceRange.min && parseFloat(product.price) <= priceRange.max;
     const matchesSize = selectedSizes.length === 0 || selectedSizes.includes(product.size);
     const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color);
     
@@ -163,11 +174,14 @@ const ProductsPage = () => {
       
       <div className="filter-group">
         <h3>Price Range</h3>
-        <input type="range" min="0" max="100000" value={priceRange} onChange={handlePriceChange} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-          <span>{getCurrencySymbol(currency)}0</span>
-          <span>{formatNumberWithCommas(priceRange)}</span>
-        </div>
+        {priceRange.min !== undefined && priceRange.max !== undefined && (
+          <PriceRangeSlider
+            minPrice={priceRange.min}
+            maxPrice={priceRange.max}
+            value={priceRange.max}
+            onChange={handlePriceChange}
+          />
+        )}
       </div>
 
       <div className="filter-group">

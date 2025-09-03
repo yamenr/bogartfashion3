@@ -315,8 +315,6 @@ function ProductManager() {
               <th>Image</th>
               <th>Name</th>
               <th>Category</th>
-              <th>Size</th>
-              <th>Color</th>
               <th>Brand</th>
               <th>Gender</th>
               <th>Price</th>
@@ -364,8 +362,6 @@ function ProductManager() {
                   {p.featured && <span style={{ marginLeft: '5px', color: '#C2883A' }}>★ Featured</span>}
                 </td>
                 <td>{categories.find(c => c.category_id === p.category_id)?.name || 'N/A'}</td>
-                <td>{p.size || 'N/A'}</td>
-                <td>{p.color || 'N/A'}</td>
                 <td>{p.brand || 'N/A'}</td>
                 <td>{p.gender || 'N/A'}</td>
                 <td>{formatPrice(p.price)}</td>
@@ -419,7 +415,7 @@ function ProductManager() {
             ))}
             {filteredProducts.length === 0 && (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', color: '#888' }}>No products found.</td>
+                <td colSpan="9" style={{ textAlign: 'center', color: '#888' }}>No products found.</td>
               </tr>
             )}
           </tbody>

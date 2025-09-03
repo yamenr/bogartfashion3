@@ -40,6 +40,8 @@ export default function ProductDetails() {
         const data = await res.json();
         setProduct(data);
         
+        // Product data loaded successfully
+        
         // Fetch product attributes for hierarchical variant system
         await fetchProductAttributes(data.product_id);
       } catch (err) {
@@ -54,8 +56,18 @@ export default function ProductDetails() {
   const fetchProductAttributes = async (productId) => {
     setLoadingAttributes(true);
     try {
+      console.log('Fetching attributes for product:', productId);
       const res = await fetch(`/api/product-attributes/products/${productId}/attributes`);
+      console.log('Attributes API response status:', res.status);
+      
+      if (!res.ok) {
+        console.log('Attributes API failed, using simple variant system');
+        setProductAttributes([]);
+        return;
+      }
+      
       const attributes = await res.json();
+      console.log('Received attributes:', attributes);
       setProductAttributes(attributes);
       
       // Set default selections for first attribute
@@ -65,9 +77,12 @@ export default function ProductDetails() {
           ...prev,
           [firstAttr.slug]: firstAttr.values[0].slug
         }));
+        console.log('Set default selection for', firstAttr.slug, 'to', firstAttr.values[0].slug);
       }
     } catch (err) {
       console.error('Error fetching product attributes:', err);
+      // On error, use simple variant system
+      setProductAttributes([]);
     } finally {
       setLoadingAttributes(false);
     }
@@ -75,6 +90,7 @@ export default function ProductDetails() {
 
   const fetchAvailableVariants = async (attributes) => {
     try {
+      console.log('Fetching variants for attributes:', attributes);
       const res = await fetch(`/api/product-attributes/products/${id}/filter-variants`, {
         method: 'POST',
         headers: {
@@ -82,14 +98,19 @@ export default function ProductDetails() {
         },
         body: JSON.stringify({ selectedAttributes: attributes })
       });
+      console.log('Variants API response status:', res.status);
+      
       const variants = await res.json();
+      console.log('Received variants:', variants);
       setAvailableVariants(variants);
       
       // Auto-select first available variant
       if (variants.length > 0) {
         setSelectedVariant(variants[0]);
+        console.log('Auto-selected variant:', variants[0]);
       } else {
         setSelectedVariant(null);
+        console.log('No variants available for selection');
       }
     } catch (err) {
       console.error('Error fetching available variants:', err);
@@ -121,9 +142,9 @@ export default function ProductDetails() {
     );
   };
 
-  // Get current price (variant price or product price)
+  // Get current price (variant price overrides product price only if different)
   const getCurrentPrice = () => {
-    if (selectedVariant && selectedVariant.variant_price) {
+    if (selectedVariant && selectedVariant.variant_price && selectedVariant.variant_price !== product?.price) {
       return selectedVariant.variant_price;
     }
     return product?.price || 0;
@@ -162,7 +183,7 @@ export default function ProductDetails() {
     }
     
     // Check if we have a hierarchical variant system
-    if (productAttributes && productAttributes.length > 0) {
+    if (hasHierarchicalVariants && productAttributes && productAttributes.length > 0) {
       if (!areAllAttributesSelected()) {
         setCartMsg('Please select all required attributes before adding to cart.');
         return;
@@ -210,13 +231,35 @@ export default function ProductDetails() {
   if (loading) return <div className="loading-container">Loading...</div>;
   if (!product) return <div className="error-container">Product not found.</div>;
 
+  // Enable hierarchical variant system
   const hasHierarchicalVariants = productAttributes && productAttributes.length > 0;
+  
   const currentPrice = getCurrentPrice();
   const currentStockStatus = getCurrentStockStatus();
   const isOutOfStock = isCurrentSelectionOutOfStock();
 
   return (
     <div className="product-details-container">
+      {/* Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          backgroundColor: '#f0f0f0',
+          color: '#333',
+          padding: '10px',
+          marginBottom: '20px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          fontFamily: 'monospace'
+        }}>
+          <strong>Debug Info:</strong><br/>
+          hasHierarchicalVariants: {hasHierarchicalVariants ? 'true' : 'false'}<br/>
+          productAttributes.length: {productAttributes?.length || 0}<br/>
+          selectedAttributes: {JSON.stringify(selectedAttributes)}<br/>
+          availableVariants.length: {availableVariants?.length || 0}<br/>
+          selectedVariant: {selectedVariant ? selectedVariant.variant_name : 'none'}
+        </div>
+      )}
+      
       {/* Admin Notice */}
       {isUserAdmin && (
         <div style={{
@@ -358,7 +401,7 @@ export default function ProductDetails() {
             <span className="price-value">
               {formatPrice(currentPrice, currency)}
             </span>
-            {selectedVariant && selectedVariant.variant_price !== product.price && (
+            {selectedVariant && selectedVariant.variant_price && selectedVariant.variant_price !== product.price && (
               <span className="original-price">{formatPrice(product.price, currency)}</span>
             )}
           </div>

@@ -474,9 +474,10 @@
 .add-to-cart-section {
   margin: 30px 0;
   padding: 25px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #222;
   border-radius: 12px;
-  border: 1px solid #dee2e6;
+  border: 1px solid #C2883A;
+  box-shadow: 0 4px 20px rgba(194, 136, 58, 0.2);
 }
 
 .quantity-selector {
@@ -488,16 +489,18 @@
 
 .quantity-selector label {
   font-weight: 600;
-  color: #333;
+  color: #fff;
   font-size: 16px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .quantity-selector select {
   padding: 10px 15px;
-  border: 2px solid #e9ecef;
+  border: 2px solid #C2883A;
   border-radius: 6px;
   font-size: 16px;
-  background: white;
+  background: #1a1a1a;
+  color: #fff;
   cursor: pointer;
   transition: border-color 0.3s ease;
 }
@@ -612,8 +615,8 @@
   font-family: 'Lato', sans-serif;
 }
 
-/* Hierarchical Variant Selection Styles */
-.hierarchical-variant-selection {
+/* Attribute Selection Styles */
+.attribute-selection {
   margin: 20px 0;
   padding: 25px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -621,7 +624,7 @@
   border: 1px solid #dee2e6;
 }
 
-.hierarchical-variant-selection h3 {
+.attribute-selection h3 {
   margin: 0 0 20px 0;
   color: #333;
   font-size: 20px;
@@ -688,6 +691,23 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* No Attributes Message */
+.no-attributes-message {
+  margin: 20px 0;
+  padding: 25px;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-radius: 12px;
+  border: 1px solid #ffc107;
+  text-align: center;
+}
+
+.no-attributes-message p {
+  margin: 0;
+  color: #856404;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 /* Available Variants Display */
@@ -769,9 +789,9 @@
   font-weight: 500;
 }
 
-/* Responsive Design for Hierarchical Variants */
+/* Responsive Design for Attribute Selection */
 @media (max-width: 768px) {
-  .hierarchical-variant-selection {
+  .attribute-selection {
     padding: 20px;
   }
   

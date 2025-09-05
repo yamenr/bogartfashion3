@@ -68,6 +68,33 @@ export default function AnalyticsDashboard() {
     setError(''); // Clear any previous errors
     try {
       const token = localStorage.getItem('token');
+      
+      // Debug: Check if token exists and is valid
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      // Debug: Check token validity
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        const currentTime = Math.floor(Date.now() / 1000);
+        
+        if (payload.exp && payload.exp <= currentTime) {
+          throw new Error('Authentication token has expired. Please log in again.');
+        }
+        
+        if (payload.role !== 'admin') {
+          throw new Error('Admin privileges required. Current role: ' + payload.role);
+        }
+        
+        console.log('Token validation passed. User role:', payload.role);
+      } catch (tokenError) {
+        console.error('Token validation failed:', tokenError.message);
+        throw new Error('Invalid authentication token. Please log in again.');
+      }
+      
       const headers = { 'Authorization': `Bearer ${token}` };
       
       const params = new URLSearchParams({
@@ -75,6 +102,8 @@ export default function AnalyticsDashboard() {
         ...(startDate && { startDate }),
         ...(endDate && { endDate })
       });
+
+      console.log('Fetching analytics data with params:', params.toString());
 
       const [
         salesRes,

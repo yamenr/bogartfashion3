@@ -179,7 +179,39 @@ router.post('/', authenticateToken, requireAdmin, upload.single('image'), async 
         }
 
         const sql = `INSERT INTO products (name, description, price, image, supplier_id, category_id, size, color, brand, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        await db.query(sql, [name, description, price, image, supplier_id, category_id, size, color, brand, gender]);
+        const [result] = await db.query(sql, [name, description, price, image, supplier_id, category_id, size, color, brand, gender]);
+        
+        const productId = result.insertId;
+        
+        // Automatically assign Color and Size attributes to the new product
+        try {
+            // Get Color and Size attribute IDs
+            const [colorAttr] = await db.query('SELECT attribute_id FROM product_attributes WHERE slug = "color"');
+            const [sizeAttr] = await db.query('SELECT attribute_id FROM product_attributes WHERE slug = "size"');
+            
+            if (colorAttr.length > 0 && sizeAttr.length > 0) {
+                const colorAttrId = colorAttr[0].attribute_id;
+                const sizeAttrId = sizeAttr[0].attribute_id;
+                
+                // Assign Color attribute (display order 1)
+                await db.query(
+                    'INSERT INTO product_attribute_options (product_id, attribute_id, display_order, is_required) VALUES (?, ?, ?, ?)',
+                    [productId, colorAttrId, 1, 1]
+                );
+                
+                // Assign Size attribute (display order 2)
+                await db.query(
+                    'INSERT INTO product_attribute_options (product_id, attribute_id, display_order, is_required) VALUES (?, ?, ?, ?)',
+                    [productId, sizeAttrId, 2, 1]
+                );
+                
+                console.log(`✅ Automatically assigned Color and Size attributes to product ${productId}`);
+            }
+        } catch (attrError) {
+            console.error('Warning: Could not assign attributes to new product:', attrError.message);
+            // Don't fail the product creation if attribute assignment fails
+        }
+        
         res.json({ message: 'Product added successfully' });
     } catch (err) {
         console.error('Database error adding product:', err);
@@ -242,12 +274,25 @@ router.put('/:id', authenticateToken, requireAdmin, upload.single('image'), asyn
 // Soft delete a product (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     const { id } = req.params;
-    const sql = `UPDATE products SET stock = 0 WHERE product_id = ?`;
+    
     try {
-        const [result] = await db.query(sql, [id]);
-        if (result.affectedRows === 0) {
+        // First check if product exists
+        const [existingProduct] = await db.query('SELECT product_id FROM products WHERE product_id = ?', [id]);
+        if (existingProduct.length === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }
+
+        // Deactivate all variants for this product
+        await db.query('UPDATE product_variants SET is_active = 0 WHERE product_id = ?', [id]);
+        
+        // Update inventory items to 'sold' status to remove from availability
+        await db.query(`
+            UPDATE inventory_items ii 
+            JOIN product_variants pv ON ii.variant_id = pv.variant_id 
+            SET ii.status = 'sold' 
+            WHERE pv.product_id = ? AND ii.status = 'available'
+        `, [id]);
+        
         res.json({ message: 'Product deactivated successfully' });
     } catch (err) {
         console.error('Error deactivating product:', err);
@@ -331,11 +376,23 @@ router.patch('/:id/restore', authenticateToken, requireAdmin, async (req, res) =
     const { id } = req.params;
     
     try {
-        const sql = `UPDATE products SET is_active = 1 WHERE product_id = ?`;
-        const [result] = await db.query(sql, [id]);
-        if (result.affectedRows === 0) {
+        // First check if product exists
+        const [existingProduct] = await db.query('SELECT product_id FROM products WHERE product_id = ?', [id]);
+        if (existingProduct.length === 0) {
             return res.status(404).json({ message: 'Product not found.' });
         }
+
+        // Reactivate all variants for this product
+        await db.query('UPDATE product_variants SET is_active = 1 WHERE product_id = ?', [id]);
+        
+        // Restore inventory items to 'available' status
+        await db.query(`
+            UPDATE inventory_items ii 
+            JOIN product_variants pv ON ii.variant_id = pv.variant_id 
+            SET ii.status = 'available' 
+            WHERE pv.product_id = ? AND ii.status = 'sold'
+        `, [id]);
+        
         res.json({ message: 'Product restored successfully' });
     } catch (err) {
         console.error('Error restoring product:', err);

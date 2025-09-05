@@ -64,6 +64,49 @@ const AdvancedInventory = () => {
         size: ''
     });
 
+    // Auto-generate SKU and variant name when SKU generator values change
+    useEffect(() => {
+        if (skuGenerator.productType && skuGenerator.color && skuGenerator.size) {
+            const generatedSku = `${skuGenerator.productType}-${skuGenerator.color}-${skuGenerator.size}`;
+            
+            // Get color and size names from options
+            const colorName = skuOptions.colors[skuGenerator.color] || skuGenerator.color;
+            const sizeName = skuOptions.sizes[skuGenerator.size] || skuGenerator.size;
+            
+            // Generate variant name if product is selected
+            let variantName = '';
+            if (variantForm.product_id) {
+                const selectedProduct = products.find(p => p.product_id == variantForm.product_id);
+                if (selectedProduct) {
+                    variantName = `${selectedProduct.name} - ${colorName} ${sizeName}`;
+                }
+            }
+            
+            setVariantForm(prev => ({
+                ...prev,
+                variant_sku: generatedSku,
+                variant_name: variantName || prev.variant_name
+            }));
+        }
+    }, [skuGenerator, variantForm.product_id, products]);
+
+    // Auto-generate variant name when product changes
+    useEffect(() => {
+        if (variantForm.product_id && skuGenerator.color && skuGenerator.size) {
+            const selectedProduct = products.find(p => p.product_id == variantForm.product_id);
+            if (selectedProduct) {
+                const colorName = skuOptions.colors[skuGenerator.color] || skuGenerator.color;
+                const sizeName = skuOptions.sizes[skuGenerator.size] || skuGenerator.size;
+                const variantName = `${selectedProduct.name} - ${colorName} ${sizeName}`;
+                
+                setVariantForm(prev => ({
+                    ...prev,
+                    variant_name: variantName
+                }));
+            }
+        }
+    }, [variantForm.product_id, products, skuGenerator.color, skuGenerator.size]);
+
     // SKU Options
     const skuOptions = {
         productTypes: {
@@ -219,6 +262,20 @@ const AdvancedInventory = () => {
                 if (selectedProduct) {
                     variantData.variant_price = selectedProduct.price;
                 }
+            }
+            
+            // Add attributes based on SKU generator selections
+            const attributes = {};
+            if (skuGenerator.color) {
+                attributes.color = skuGenerator.color.toLowerCase();
+            }
+            if (skuGenerator.size) {
+                attributes.size = skuGenerator.size.toLowerCase();
+            }
+            
+            // Only add attributes if we have some
+            if (Object.keys(attributes).length > 0) {
+                variantData.attributes = attributes;
             }
             
             if (editingVariant) {
@@ -854,6 +911,24 @@ const AdvancedInventory = () => {
                                         />
                                     </div>
                                 </div>
+                                
+                                {/* Attribute Linking Info */}
+                                {skuGenerator.color && skuGenerator.size && (
+                                    <div style={{ 
+                                        backgroundColor: '#e8f5e8', 
+                                        border: '1px solid #4caf50', 
+                                        borderRadius: '4px', 
+                                        padding: '10px', 
+                                        marginTop: '10px',
+                                        fontSize: '14px',
+                                        color: '#2e7d32'
+                                    }}>
+                                        <strong>🔗 Auto-Linking:</strong> This variant will be automatically linked to 
+                                        <strong> Color: {skuOptions.colors[skuGenerator.color]}</strong> and 
+                                        <strong> Size: {skuOptions.sizes[skuGenerator.size]}</strong> attributes.
+                                        Users will be able to filter by these attributes on the product page.
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group">

@@ -247,7 +247,7 @@ router.post('/fix-inventory', authenticateToken, requireAdmin, async (req, res) 
             fixedProducts: negativeProducts.map(p => ({
                 product_id: p.product_id,
                 name: p.name,
-                oldStock: p.stock
+                oldStock: 0 // Stock is now calculated from variants
             }))
         });
     } catch (err) {
@@ -472,10 +472,10 @@ router.get('/analytics/inventory', authenticateToken, requireAdmin, async (req, 
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.category_id
             LEFT JOIN suppliers s ON p.supplier_id = s.supplier_id
-            LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+            LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1
             LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
             LEFT JOIN order_items oi ON p.product_id = oi.product_id
-            LEFT JOIN orders o ON oi.order_id = o.order_id AND o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            LEFT JOIN orders o ON oi.order_id = o.order_id AND (o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY) OR o.order_date IS NULL)
             GROUP BY p.product_id, p.name, c.name, s.name, p.price
             ORDER BY current_stock ASC
         `);
@@ -565,12 +565,15 @@ router.get('/analytics/export', authenticateToken, requireAdmin, async (req, res
                     SELECT 
                         p.name,
                         p.price,
-                        p.stock,
+                        COALESCE(SUM(CASE WHEN ii.status = 'available' THEN 1 ELSE 0 END), 0) as stock,
                         c.name as category,
                         s.name as supplier
                     FROM products p
                     LEFT JOIN categories c ON p.category_id = c.category_id
                     LEFT JOIN suppliers s ON p.supplier_id = s.supplier_id
+                    LEFT JOIN product_variants pv ON p.product_id = pv.product_id AND pv.is_active = 1
+                    LEFT JOIN inventory_items ii ON pv.variant_id = ii.variant_id
+                    GROUP BY p.product_id, p.name, p.price, c.name, s.name
                     ORDER BY p.name
                 `);
                 data = productsRes[0];

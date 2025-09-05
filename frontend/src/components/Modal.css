@@ -62,6 +62,16 @@
   color: #fff;
 }
 
+/* Ensure textarea text is white */
+.form-group textarea {
+  color: #fff !important;
+  background: #333 !important;
+}
+
+.form-group textarea::placeholder {
+  color: #999 !important;
+}
+
 .form-row {
   display: flex;
   gap: 20px;

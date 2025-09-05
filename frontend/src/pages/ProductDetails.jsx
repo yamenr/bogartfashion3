@@ -91,23 +91,60 @@ export default function ProductDetails() {
   const fetchAvailableVariants = async (attributes) => {
     try {
       console.log('Fetching variants for attributes:', attributes);
-      const res = await fetch(`/api/product-attributes/products/${id}/filter-variants`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ selectedAttributes: attributes })
-      });
-      console.log('Variants API response status:', res.status);
       
-      const variants = await res.json();
-      console.log('Received variants:', variants);
-      setAvailableVariants(variants);
+      // Get all variants for this product first
+      const res = await fetch(`/api/products/${id}`);
+      const productData = await res.json();
+      
+      if (!productData.variants) {
+        setAvailableVariants([]);
+        setSelectedVariant(null);
+        return;
+      }
+      
+      // Filter variants based on selected attributes by parsing variant names
+      const filteredVariants = productData.variants.filter(variant => {
+        const variantName = variant.variant_name.toLowerCase();
+        
+        // Check if variant name contains the selected color and size
+        const selectedColor = attributes.color?.toLowerCase();
+        const selectedSize = attributes.size?.toLowerCase();
+        
+        let colorMatch = true;
+        let sizeMatch = true;
+        
+        if (selectedColor) {
+          colorMatch = variantName.includes(selectedColor);
+        }
+        
+        if (selectedSize) {
+          // Map size abbreviations
+          const sizeMap = {
+            'xs': 'xs',
+            's': 's', 
+            'm': 'm',
+            'l': 'l',
+            'xl': 'xl',
+            'xxl': 'xxl',
+            'large': 'l',
+            'medium': 'm',
+            'small': 's'
+          };
+          
+          const mappedSize = sizeMap[selectedSize] || selectedSize;
+          sizeMatch = variantName.includes(mappedSize);
+        }
+        
+        return colorMatch && sizeMatch;
+      });
+      
+      console.log('Filtered variants:', filteredVariants);
+      setAvailableVariants(filteredVariants);
       
       // Auto-select first available variant
-      if (variants.length > 0) {
-        setSelectedVariant(variants[0]);
-        console.log('Auto-selected variant:', variants[0]);
+      if (filteredVariants.length > 0) {
+        setSelectedVariant(filteredVariants[0]);
+        console.log('Auto-selected variant:', filteredVariants[0]);
       } else {
         setSelectedVariant(null);
         console.log('No variants available for selection');
@@ -182,8 +219,8 @@ export default function ProductDetails() {
       return;
     }
     
-    // Check if we have a hierarchical variant system
-    if (hasHierarchicalVariants && productAttributes && productAttributes.length > 0) {
+    // All products now use attribute-based system
+    if (hasAttributes && productAttributes && productAttributes.length > 0) {
       if (!areAllAttributesSelected()) {
         setCartMsg('Please select all required attributes before adding to cart.');
         return;
@@ -211,28 +248,15 @@ export default function ProductDetails() {
       addToCart(itemToAdd, quantity);
       setCartMsg('Added to cart!');
     } else {
-      // Fallback to old system for products without attributes
-      if (product.hasVariants && !selectedVariant) {
-        setCartMsg('Please select a variant before adding to cart.');
-        return;
-      }
-      
-      const itemToAdd = {
-        ...product,
-        selectedVariant: selectedVariant,
-        variantPrice: selectedVariant ? selectedVariant.variant_price : product.price
-      };
-      
-      addToCart(itemToAdd, quantity);
-      setCartMsg('Added to cart!');
+      setCartMsg('This product is not available for purchase. Please contact support.');
     }
   };
 
   if (loading) return <div className="loading-container">Loading...</div>;
   if (!product) return <div className="error-container">Product not found.</div>;
 
-  // Enable hierarchical variant system
-  const hasHierarchicalVariants = productAttributes && productAttributes.length > 0;
+  // All products now use attribute-based system
+  const hasAttributes = productAttributes && productAttributes.length > 0;
   
   const currentPrice = getCurrentPrice();
   const currentStockStatus = getCurrentStockStatus();
@@ -240,25 +264,6 @@ export default function ProductDetails() {
 
   return (
     <div className="product-details-container">
-      {/* Debug Info */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          backgroundColor: '#f0f0f0',
-          color: '#333',
-          padding: '10px',
-          marginBottom: '20px',
-          borderRadius: '5px',
-          fontSize: '12px',
-          fontFamily: 'monospace'
-        }}>
-          <strong>Debug Info:</strong><br/>
-          hasHierarchicalVariants: {hasHierarchicalVariants ? 'true' : 'false'}<br/>
-          productAttributes.length: {productAttributes?.length || 0}<br/>
-          selectedAttributes: {JSON.stringify(selectedAttributes)}<br/>
-          availableVariants.length: {availableVariants?.length || 0}<br/>
-          selectedVariant: {selectedVariant ? selectedVariant.variant_name : 'none'}
-        </div>
-      )}
       
       {/* Admin Notice */}
       {isUserAdmin && (
@@ -309,9 +314,9 @@ export default function ProductDetails() {
         <div className="product-info">
           <h1 className="product-title">{product.name}</h1>
           
-          {/* Hierarchical Variant Selection */}
-          {hasHierarchicalVariants && (
-            <div className="hierarchical-variant-selection">
+          {/* Attribute-Based Product Selection */}
+          {hasAttributes ? (
+            <div className="attribute-selection">
               <h3>Select Your Options:</h3>
               
               {productAttributes.map((attribute, index) => (
@@ -371,27 +376,9 @@ export default function ProductDetails() {
                 </div>
               )}
             </div>
-          )}
-          
-          {/* Fallback to old variant system */}
-          {!hasHierarchicalVariants && product.variants && product.variants.length > 0 && (
-            <div className="variant-selection">
-              <h3>Select Variant:</h3>
-              <div className="variants-grid">
-                {product.variants.map((variant) => (
-                  <div
-                    key={variant.variant_id}
-                    className={`variant-option ${selectedVariant?.variant_id === variant.variant_id ? 'selected' : ''}`}
-                    onClick={() => setSelectedVariant(variant)}
-                  >
-                    <div className="variant-name">{variant.variant_name}</div>
-                    <div className="variant-price">{formatPrice(variant.variant_price, currency)}</div>
-                    <div className="variant-stock">
-                      Stock: {variant.available_stock > 0 ? `${variant.available_stock} available` : 'Out of stock'}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          ) : (
+            <div className="no-attributes-message">
+              <p>This product is not available for purchase. Please contact support.</p>
             </div>
           )}
           
@@ -469,11 +456,11 @@ export default function ProductDetails() {
               <button
                 onClick={handleAddToCart}
                 className="add-to-cart-button"
-                disabled={isOutOfStock || (hasHierarchicalVariants && !areAllAttributesSelected())}
+                disabled={isOutOfStock || (hasAttributes && !areAllAttributesSelected())}
               >
                 {isOutOfStock 
                   ? 'Out of Stock' 
-                  : hasHierarchicalVariants && !areAllAttributesSelected()
+                  : hasAttributes && !areAllAttributesSelected()
                     ? 'Select Options'
                     : 'Add to Cart'
                 }

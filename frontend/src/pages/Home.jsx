@@ -11,9 +11,6 @@ const businessSuitsImage = 'http://localhost:3001/uploads/formal-wear/black-suit
 const denimImage = 'http://localhost:3001/uploads/mens-clothing/denim-jacket.jpg';
 const outerwearImage = 'http://localhost:3001/uploads/formal-wear/navy-blazer.jpg';
 const activewearImage = 'http://localhost:3001/uploads/sportswear/athletic-shorts.jpg';
-const fashionAccessoriesImage = 'http://localhost:3001/uploads/accessories/leather-belt.jpg';
-const footwearImage = 'http://localhost:3001/uploads/footwear/oxford-shoes.jpg';
-const watchesImage = 'http://localhost:3001/uploads/watches/analog-watch.jpg';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -50,9 +47,6 @@ const Home = () => {
     { name: 'Denim Collection', description: 'Classic denim jackets and jeans with modern styling. Timeless pieces that never go out of style.', imageUrl: denimImage },
     { name: 'Business Attire', description: 'Stylish blazers and formal jackets for every business occasion. From casual blazers to formal suits.', imageUrl: outerwearImage },
     { name: 'Sportswear', description: 'Performance-driven activewear for the active lifestyle. Comfort and style for your fitness routine.', imageUrl: activewearImage },
-    { name: 'Accessories', description: 'Complete your look with premium men\'s accessories including belts, ties, watches, and footwear.', imageUrl: fashionAccessoriesImage },
-    { name: 'Footwear', description: 'Premium men\'s footwear from classic Oxford shoes to casual sneakers. Quality and comfort for every occasion.', imageUrl: footwearImage },
-    { name: 'Watches', description: 'Elegant timepieces that complement your style. From classic analog to modern digital watches.', imageUrl: watchesImage },
   ];
 
   return (

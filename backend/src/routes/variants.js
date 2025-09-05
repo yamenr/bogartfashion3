@@ -135,7 +135,7 @@ router.get('/with-inventory', authenticateToken, requireAdmin, async (req, res) 
 // Create a new variant
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { product_id, variant_name, variant_sku, variant_price, stock_quantity } = req.body;
+        const { product_id, variant_name, variant_sku, variant_price, stock_quantity, attributes } = req.body;
         
         // Validate required fields
         if (!product_id || !variant_name || !variant_sku || !variant_price) {
@@ -173,6 +173,43 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
         `, [product_id, variant_name, variant_sku, variant_price]);
         
         const variantId = result.insertId;
+        
+        // Link variant to attributes if provided
+        if (attributes && typeof attributes === 'object') {
+            for (const [attributeSlug, attributeValue] of Object.entries(attributes)) {
+                // Get attribute ID
+                const [attributeRows] = await db.execute(
+                    'SELECT attribute_id FROM product_attributes WHERE slug = ?',
+                    [attributeSlug]
+                );
+                
+                if (attributeRows.length > 0) {
+                    const attributeId = attributeRows[0].attribute_id;
+                    
+                    // Get attribute value ID
+                    const [valueRows] = await db.execute(
+                        'SELECT value_id FROM product_attribute_values WHERE attribute_id = ? AND slug = ?',
+                        [attributeId, attributeValue]
+                    );
+                    
+                    if (valueRows.length > 0) {
+                        const valueId = valueRows[0].value_id;
+                        
+                        // Link variant to attribute value
+                        await db.execute(`
+                            INSERT INTO product_variant_attributes (variant_id, attribute_id, value_id)
+                            VALUES (?, ?, ?)
+                        `, [variantId, attributeId, valueId]);
+                        
+                        console.log(`Linked variant ${variantId} to ${attributeSlug}:${attributeValue}`);
+                    } else {
+                        console.warn(`Attribute value not found: ${attributeSlug}:${attributeValue}`);
+                    }
+                } else {
+                    console.warn(`Attribute not found: ${attributeSlug}`);
+                }
+            }
+        }
         
         // Create inventory items for the stock quantity
         if (stock_quantity && stock_quantity > 0) {
